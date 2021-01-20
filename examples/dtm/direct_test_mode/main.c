@@ -51,10 +51,15 @@
 #include "ble_dtm.h"
 #include "boards.h"
 #include "app_uart.h"
+#include "app_uart.h"
+#include "nrf_gpio.h"
 
 #if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
 #include "nrf21540.h"
 #endif
+
+#define TRACKER_RX_PIN  NRF_GPIO_PIN_MAP(0, 31)     // Tracker A4 pin
+#define TRACKER_TX_PIN  NRF_GPIO_PIN_MAP(0, 4)      // Tracker A6 pin
 
 // @note: The BLE DTM 2-wire UART standard specifies 8 data bits, 1 stop bit, no flow control.
 //        These parameters are not configurable in the BLE standard.
@@ -100,12 +105,12 @@ void uart_error_handle(app_uart_evt_t * p_event)
 /**@brief Function for UART initialization.
  */
 static void uart_init(void)
-{   
+{
     uint32_t err_code;
     const app_uart_comm_params_t comm_params =
       {
-          RX_PIN_NUMBER,
-          TX_PIN_NUMBER,
+          TRACKER_RX_PIN,
+          TRACKER_TX_PIN,
           RTS_PIN_NUMBER,
           CTS_PIN_NUMBER,
           APP_UART_FLOW_CONTROL_DISABLED,
@@ -119,6 +124,11 @@ static void uart_init(void)
                        uart_error_handle,
                        APP_IRQ_PRIORITY_LOWEST,
                        err_code);
+
+    // RX pin最好要加上拉电阻, 否则容易触发UART ERROR, 或者让TX/RX先连接到电脑让电平保持稳定
+    // // UART PIN pull up
+    // nrf_gpio_cfg_input(TRACKER_TX_PIN, NRF_GPIO_PIN_PULLUP);
+    // nrf_gpio_cfg_input(TRACKER_RX_PIN, NRF_GPIO_PIN_PULLUP);
 
     APP_ERROR_CHECK(err_code);
 }
@@ -142,6 +152,19 @@ int main(void)
 
     bsp_board_init(BSP_INIT_LEDS);
     
+    // For Particle Tracker
+    //     0: external antenna
+    //     1: internal antenna
+    // Here we use '0' to test exteranl antenna
+    uint8_t nrf_pin = NRF_GPIO_PIN_MAP(1, 15);
+    nrf_gpio_cfg_output(nrf_pin);
+    nrf_gpio_pin_clear(nrf_pin);
+
+    // Turn on Green LED to indicate the Device is running
+    nrf_pin = NRF_GPIO_PIN_MAP(1, 5);
+    nrf_gpio_cfg_output(nrf_pin);
+    nrf_gpio_pin_clear(nrf_pin);
+
     uart_init();
 
     dtm_error_code = dtm_init();
@@ -154,6 +177,12 @@ int main(void)
     if (dtm_error_code != DTM_SUCCESS)
     {
         // If DTM cannot be correctly initialized, then we just return.
+        return -1;
+    }
+
+    // Set TX power if needed
+    if (!dtm_set_txpower(RADIO_TXPOWER_TXPOWER_Pos8dBm))
+    {
         return -1;
     }
 
