@@ -90,6 +90,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_eddsa.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_hash.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_hmac.c \
+  $(SDK_ROOT)/external/micro-ecc/micro-ecc/uECC.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -147,7 +148,7 @@ INC_FOLDERS += \
 # Libraries common to all targets
 LIB_FILES += \
   $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.6.a \
-  $(SDK_ROOT)/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a \
+#   $(SDK_ROOT)/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a \
 
 # Optimization flags
 OPT = -Os -g3
