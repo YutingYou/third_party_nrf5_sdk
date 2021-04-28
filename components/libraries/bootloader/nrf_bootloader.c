@@ -224,6 +224,8 @@ static void loop_forever(void)
 }
 
 #if NRF_BL_DFU_ENTER_METHOD_BUTTON
+
+#define WATCH_BUTTON 17
 #ifndef BUTTON_PULL
     #error NRF_BL_DFU_ENTER_METHOD_BUTTON is enabled but not buttons seem to be available on the board.
 #endif
@@ -231,9 +233,9 @@ static void loop_forever(void)
  */
 static void dfu_enter_button_init(void)
 {
-    nrf_gpio_cfg_sense_input(NRF_BL_DFU_ENTER_METHOD_BUTTON_PIN,
-                             BUTTON_PULL,
-                             NRF_GPIO_PIN_SENSE_LOW);
+    nrf_gpio_cfg_sense_input(WATCH_BUTTON,
+                             NRF_GPIO_PIN_NOPULL,
+                             NRF_GPIO_PIN_SENSE_HIGH);
 }
 #endif
 
@@ -361,7 +363,7 @@ static bool dfu_enter_check(void)
     }
 
     if (NRF_BL_DFU_ENTER_METHOD_BUTTON &&
-       (nrf_gpio_pin_read(NRF_BL_DFU_ENTER_METHOD_BUTTON_PIN) == 0))
+       (nrf_gpio_pin_read(WATCH_BUTTON) == 1))
     {
         NRF_LOG_DEBUG("DFU mode requested via button.");
         return true;
