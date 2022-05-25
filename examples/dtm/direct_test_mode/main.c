@@ -58,8 +58,10 @@
 #include "nrf21540.h"
 #endif
 
-#define TRACKER_RX_PIN  NRF_GPIO_PIN_MAP(0, 31)     // Tracker A4 pin
-#define TRACKER_TX_PIN  NRF_GPIO_PIN_MAP(0, 4)      // Tracker A6 pin
+#define UART_RX_PIN                 NRF_GPIO_PIN_MAP(0, 8)
+#define UART_TX_PIN                 NRF_GPIO_PIN_MAP(0, 6)
+#define ANTENNA_SELECT_PIN          NRF_GPIO_PIN_MAP(1, 0)
+#define GREEN_LED_PIN               NRF_GPIO_PIN_MAP(0, 27)
 
 // @note: The BLE DTM 2-wire UART standard specifies 8 data bits, 1 stop bit, no flow control.
 //        These parameters are not configurable in the BLE standard.
@@ -109,8 +111,8 @@ static void uart_init(void)
     uint32_t err_code;
     const app_uart_comm_params_t comm_params =
       {
-          TRACKER_RX_PIN,
-          TRACKER_TX_PIN,
+          UART_RX_PIN,
+          UART_TX_PIN,
           RTS_PIN_NUMBER,
           CTS_PIN_NUMBER,
           APP_UART_FLOW_CONTROL_DISABLED,
@@ -127,8 +129,8 @@ static void uart_init(void)
 
     // RX pin最好要加上拉电阻, 否则容易触发UART ERROR, 或者让TX/RX先连接到电脑让电平保持稳定
     // // UART PIN pull up
-    // nrf_gpio_cfg_input(TRACKER_TX_PIN, NRF_GPIO_PIN_PULLUP);
-    // nrf_gpio_cfg_input(TRACKER_RX_PIN, NRF_GPIO_PIN_PULLUP);
+    // nrf_gpio_cfg_input(UART_TX_PIN, NRF_GPIO_PIN_PULLUP);
+    // nrf_gpio_cfg_input(UART_RX_PIN, NRF_GPIO_PIN_PULLUP);
 
     APP_ERROR_CHECK(err_code);
 }
@@ -156,14 +158,12 @@ int main(void)
     //     0: external antenna
     //     1: internal antenna
     // Here we use '0' to test exteranl antenna
-    uint8_t nrf_pin = NRF_GPIO_PIN_MAP(1, 15);
-    nrf_gpio_cfg_output(nrf_pin);
-    nrf_gpio_pin_clear(nrf_pin);
+    nrf_gpio_cfg_output(ANTENNA_SELECT_PIN);
+    nrf_gpio_pin_clear(ANTENNA_SELECT_PIN);
 
     // Turn on Green LED to indicate the Device is running
-    nrf_pin = NRF_GPIO_PIN_MAP(1, 5);
-    nrf_gpio_cfg_output(nrf_pin);
-    nrf_gpio_pin_clear(nrf_pin);
+    nrf_gpio_cfg_output(GREEN_LED_PIN);
+    nrf_gpio_pin_clear(GREEN_LED_PIN);
 
     uart_init();
 
