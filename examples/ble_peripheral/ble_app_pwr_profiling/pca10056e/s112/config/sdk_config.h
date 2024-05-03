@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -106,6 +106,30 @@
 #define NRF_RADIO_ANTENNA_COUNT 12
 #endif
 
+// <o> DTM_RADIO_IRQ_PRIORITY - RADIO interrupt priority 
+#ifndef DTM_RADIO_IRQ_PRIORITY
+#define DTM_RADIO_IRQ_PRIORITY 2
+#endif
+
+// <o> DTM_TIMER_IRQ_PRIORITY - DTM timer interrupt priority 
+#ifndef DTM_TIMER_IRQ_PRIORITY
+#define DTM_TIMER_IRQ_PRIORITY 3
+#endif
+
+// <o> DTM_ANOMALY_172_TIMER_IRQ_PRIORITY - DTM anomaly 172 timer interrupt priority 
+#ifndef DTM_ANOMALY_172_TIMER_IRQ_PRIORITY
+#define DTM_ANOMALY_172_TIMER_IRQ_PRIORITY 2
+#endif
+
+// <o> NRF_DTM_TIMER_INSTANCE  - DTM TIMER instance
+ 
+// <0=> TIMER0 
+// <2=> TIMER2 
+
+#ifndef NRF_DTM_TIMER_INSTANCE
+#define NRF_DTM_TIMER_INSTANCE 0
+#endif
+
 // </e>
 
 // <q> BLE_RACP_ENABLED  - ble_racp - Record Access Control Point library
@@ -115,12 +139,19 @@
 #define BLE_RACP_ENABLED 0
 #endif
 
-// <q> NRF_BLE_GATT_ENABLED  - nrf_ble_gatt - GATT module
- 
-
+// <e> NRF_BLE_GATT_ENABLED - nrf_ble_gatt - GATT module
+//==========================================================
 #ifndef NRF_BLE_GATT_ENABLED
 #define NRF_BLE_GATT_ENABLED 1
 #endif
+// <q> NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED  - Enable GATT MTU exchange initiation
+ 
+
+#ifndef NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED
+#define NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED 1
+#endif
+
+// </e>
 
 // <e> NRF_BLE_QWR_ENABLED - nrf_ble_qwr - Queued writes support module (prepare/execute write)
 //==========================================================

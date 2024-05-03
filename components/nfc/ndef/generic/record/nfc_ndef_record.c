@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -137,7 +137,11 @@ ret_code_t nfc_ndef_record_encode(nfc_ndef_record_desc_t const * p_ndef_record_d
     }
 
     /* PAYLOAD */
-    if (p_ndef_record_desc->payload_constructor != NULL)
+    if (p_ndef_record_desc->tnf == TNF_EMPTY)
+    {
+        record_payload_len = 0;
+    }
+    else if (p_ndef_record_desc->payload_constructor != NULL)
     {
         err_code =
             p_ndef_record_desc->payload_constructor(p_ndef_record_desc->p_payload_descriptor,

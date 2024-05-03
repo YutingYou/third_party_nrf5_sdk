@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -91,31 +91,31 @@ extern "C" {
 #define HWFC           true
 
 // serialization APPLICATION board - temp. setup for running serialized MEMU tests
-#define SER_APP_RX_PIN              NRF_GPIO_PIN_MAP(1,13)    // UART RX pin number.
-#define SER_APP_TX_PIN              NRF_GPIO_PIN_MAP(1,14)    // UART TX pin number.
+#define SER_APP_RX_PIN              NRF_GPIO_PIN_MAP(0,21)    // UART RX pin number.
+#define SER_APP_TX_PIN              NRF_GPIO_PIN_MAP(0,22)    // UART TX pin number.
 #define SER_APP_CTS_PIN             NRF_GPIO_PIN_MAP(0,2)     // UART Clear To Send pin number.
-#define SER_APP_RTS_PIN             NRF_GPIO_PIN_MAP(1,15)    // UART Request To Send pin number.
+#define SER_APP_RTS_PIN             NRF_GPIO_PIN_MAP(0,23)    // UART Request To Send pin number.
 
 #define SER_APP_SPIM0_SCK_PIN       NRF_GPIO_PIN_MAP(0,27)     // SPI clock GPIO pin number.
 #define SER_APP_SPIM0_MOSI_PIN      NRF_GPIO_PIN_MAP(0,2)      // SPI Master Out Slave In GPIO pin number
 #define SER_APP_SPIM0_MISO_PIN      NRF_GPIO_PIN_MAP(0,26)     // SPI Master In Slave Out GPIO pin number
-#define SER_APP_SPIM0_SS_PIN        NRF_GPIO_PIN_MAP(1,13)     // SPI Slave Select GPIO pin number
-#define SER_APP_SPIM0_RDY_PIN       NRF_GPIO_PIN_MAP(1,15)     // SPI READY GPIO pin number
-#define SER_APP_SPIM0_REQ_PIN       NRF_GPIO_PIN_MAP(1,14)     // SPI REQUEST GPIO pin number
+#define SER_APP_SPIM0_SS_PIN        NRF_GPIO_PIN_MAP(0,21)     // SPI Slave Select GPIO pin number
+#define SER_APP_SPIM0_RDY_PIN       NRF_GPIO_PIN_MAP(0,23)     // SPI READY GPIO pin number
+#define SER_APP_SPIM0_REQ_PIN       NRF_GPIO_PIN_MAP(0,22)     // SPI REQUEST GPIO pin number
 
 // serialization CONNECTIVITY board
-#define SER_CON_RX_PIN              NRF_GPIO_PIN_MAP(1,14)    // UART RX pin number.
-#define SER_CON_TX_PIN              NRF_GPIO_PIN_MAP(1,13)    // UART TX pin number.
-#define SER_CON_CTS_PIN             NRF_GPIO_PIN_MAP(1,15)    // UART Clear To Send pin number. Not used if HWFC is set to false.
+#define SER_CON_RX_PIN              NRF_GPIO_PIN_MAP(0,22)    // UART RX pin number.
+#define SER_CON_TX_PIN              NRF_GPIO_PIN_MAP(0,21)    // UART TX pin number.
+#define SER_CON_CTS_PIN             NRF_GPIO_PIN_MAP(0,23)    // UART Clear To Send pin number. Not used if HWFC is set to false.
 #define SER_CON_RTS_PIN             NRF_GPIO_PIN_MAP(0,2)     // UART Request To Send pin number. Not used if HWFC is set to false.
 
 
 #define SER_CON_SPIS_SCK_PIN        NRF_GPIO_PIN_MAP(0,27)    // SPI SCK signal.
 #define SER_CON_SPIS_MOSI_PIN       NRF_GPIO_PIN_MAP(0,2)     // SPI MOSI signal.
 #define SER_CON_SPIS_MISO_PIN       NRF_GPIO_PIN_MAP(0,26)    // SPI MISO signal.
-#define SER_CON_SPIS_CSN_PIN        NRF_GPIO_PIN_MAP(1,13)    // SPI CSN signal.
-#define SER_CON_SPIS_RDY_PIN        NRF_GPIO_PIN_MAP(1,15)    // SPI READY GPIO pin number.
-#define SER_CON_SPIS_REQ_PIN        NRF_GPIO_PIN_MAP(1,14)    // SPI REQUEST GPIO pin number.
+#define SER_CON_SPIS_CSN_PIN        NRF_GPIO_PIN_MAP(0,21)    // SPI CSN signal.
+#define SER_CON_SPIS_RDY_PIN        NRF_GPIO_PIN_MAP(0,23)    // SPI READY GPIO pin number.
+#define SER_CON_SPIS_REQ_PIN        NRF_GPIO_PIN_MAP(0,22)    // SPI REQUEST GPIO pin number.
 
 #define SER_CONN_CHIP_RESET_PIN     NRF_GPIO_PIN_MAP(1,1)    // Pin used to reset connectivity chip
 
@@ -124,12 +124,12 @@ extern "C" {
 #define ARDUINO_SDA_PIN             26    // SDA signal pin
 #define ARDUINO_AREF_PIN            2     // Aref pin
 
-#define ARDUINO_13_PIN              NRF_GPIO_PIN_MAP(1, 23)  // Digital pin 13
-#define ARDUINO_12_PIN              NRF_GPIO_PIN_MAP(1, 22)  // Digital pin 12
-#define ARDUINO_11_PIN              NRF_GPIO_PIN_MAP(1, 21)  // Digital pin 11
-#define ARDUINO_10_PIN              NRF_GPIO_PIN_MAP(1, 20)  // Digital pin 10
-#define ARDUINO_9_PIN               NRF_GPIO_PIN_MAP(1, 19)  // Digital pin 9
-#define ARDUINO_8_PIN               NRF_GPIO_PIN_MAP(1, 17)  // Digital pin 8
+#define ARDUINO_13_PIN              NRF_GPIO_PIN_MAP(0, 23)  // Digital pin 13
+#define ARDUINO_12_PIN              NRF_GPIO_PIN_MAP(0, 22)  // Digital pin 12
+#define ARDUINO_11_PIN              NRF_GPIO_PIN_MAP(0, 21)  // Digital pin 11
+#define ARDUINO_10_PIN              NRF_GPIO_PIN_MAP(0, 20)  // Digital pin 10
+#define ARDUINO_9_PIN               NRF_GPIO_PIN_MAP(0, 19)  // Digital pin 9
+#define ARDUINO_8_PIN               NRF_GPIO_PIN_MAP(0, 17)  // Digital pin 8
 
 #define ARDUINO_7_PIN               NRF_GPIO_PIN_MAP(1, 8) // Digital pin 7
 #define ARDUINO_6_PIN               NRF_GPIO_PIN_MAP(1, 7) // Digital pin 6

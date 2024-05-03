@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2014 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -215,6 +215,7 @@ void advertising_start(bool erase_bonds)
 static void pm_evt_handler(pm_evt_t const * p_evt)
 {
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)
@@ -696,6 +697,11 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
             APP_ERROR_CHECK(err_code);
+            err_code = pm_conn_secure(p_ble_evt->evt.gap_evt.conn_handle, false);
+            if (err_code != NRF_ERROR_BUSY)
+            {
+                APP_ERROR_CHECK(err_code);
+            }
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:

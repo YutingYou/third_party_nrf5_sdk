@@ -12,7 +12,7 @@
       <TargetOption>
         <TargetCommonOption>          <Device>nRF52840_xxAA</Device>
           <Vendor>Nordic Semiconductor</Vendor>
-          <PackID>NordicSemiconductor.nRF_DeviceFamilyPack.8.35.0</PackID>
+          <PackID>NordicSemiconductor.nRF_DeviceFamilyPack.8.40.3</PackID>
           <PackURL>http://developer.nordicsemi.com/nRF51_SDK/pieces/nRF_DeviceFamilyPack/</PackURL>          <Cpu>IROM(0x00000000,0x100000) IRAM(0x20000000,0x40000) CPUTYPE("Cortex-M4") FPU2 CLOCK(64000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
@@ -361,7 +361,7 @@
             <vShortEn>0</vShortEn>
             <vShortWch>0</vShortWch>
             <VariousControls>
-              <MiscControls>--reduce_paths</MiscControls>
+              <MiscControls>--reduce_paths --diag_suppress 188</MiscControls>
               <Define> BOARD_PCA10056 BSP_DEFINES_ONLY CONFIG_GPIO_AS_PINRESET DEBUG DEBUG_NRF FLOAT_ABI_HARD MBEDTLS_CONFIG_FILE=&lt;nrf_crypto_mbedtls_config.h&gt; NRF52840_XXAA NRF_CRYPTO_MAX_INSTANCE_COUNT=1 NRF_SDK_PRESENT __HEAP_SIZE=8192 __STACK_SIZE=8192 uECC_ENABLE_VLI_API=0 uECC_OPTIMIZATION_LEVEL=3 uECC_SQUARE_FUNC=0 uECC_SUPPORT_COMPRESSED_POINT=0 uECC_VLI_NATIVE_LITTLE_ENDIAN=1</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\..\config;..\..\..\..\..\..\..\components;..\..\..\..\..\..\..\components\boards;..\..\..\..\..\..\..\components\drivers_nrf\nrf_soc_nosd;..\..\..\..\..\..\..\components\libraries\atomic;..\..\..\..\..\..\..\components\libraries\balloc;..\..\..\..\..\..\..\components\libraries\bsp;..\..\..\..\..\..\..\components\libraries\crypto;..\..\..\..\..\..\..\components\libraries\crypto\backend\cc310;..\..\..\..\..\..\..\components\libraries\crypto\backend\cc310_bl;..\..\..\..\..\..\..\components\libraries\crypto\backend\cifra;..\..\..\..\..\..\..\components\libraries\crypto\backend\mbedtls;..\..\..\..\..\..\..\components\libraries\crypto\backend\micro_ecc;..\..\..\..\..\..\..\components\libraries\crypto\backend\nrf_hw;..\..\..\..\..\..\..\components\libraries\crypto\backend\nrf_sw;..\..\..\..\..\..\..\components\libraries\crypto\backend\oberon;..\..\..\..\..\..\..\components\libraries\crypto\backend\optiga;..\..\..\..\..\..\..\components\libraries\delay;..\..\..\..\..\..\..\components\libraries\experimental_section_vars;..\..\..\..\..\..\..\components\libraries\log;..\..\..\..\..\..\..\components\libraries\log\src;..\..\..\..\..\..\..\components\libraries\mem_manager;..\..\..\..\..\..\..\components\libraries\memobj;..\..\..\..\..\..\..\components\libraries\mutex;..\..\..\..\..\..\..\components\libraries\queue;..\..\..\..\..\..\..\components\libraries\ringbuf;..\..\..\..\..\..\..\components\libraries\stack_info;..\..\..\..\..\..\..\components\libraries\strerror;..\..\..\..\..\..\..\components\libraries\util;..\..\..;..\..\..\..\..\..\..\external\cifra_AES128-EAX;..\..\..\..\..\..\..\external\fprintf;..\..\..\..\..\..\..\external\mbedtls\include;..\..\..\..\..\..\..\external\micro-ecc\micro-ecc;..\..\..\..\..\..\..\external\nrf_cc310\include;..\..\..\..\..\..\..\external\nrf_oberon;..\..\..\..\..\..\..\external\nrf_oberon\include;..\..\..\..\..\..\..\external\nrf_tls\mbedtls\nrf_crypto\config;..\..\..\..\..\..\..\external\segger_rtt;..\..\..\..\..\..\..\integration\nrfx;..\..\..\..\..\..\..\integration\nrfx\legacy;..\..\..\..\..\..\..\modules\nrfx;..\..\..\..\..\..\..\modules\nrfx\drivers\include;..\..\..\..\..\..\..\modules\nrfx\hal;..\config</IncludePath>
@@ -697,9 +697,9 @@
         </Group>        <Group>
           <GroupName>nRF_Oberon_Crypto</GroupName>
           <Files>            <File>
-              <FileName>oberon_3.0.6.lib</FileName>
+              <FileName>oberon_3.0.8.lib</FileName>
               <FileType>4</FileType>
-              <FilePath>..\..\..\..\..\..\..\external\nrf_oberon\lib\cortex-m4\hard-float\short-wchar\oberon_3.0.6.lib</FilePath>            </File>          </Files>
+              <FilePath>..\..\..\..\..\..\..\external\nrf_oberon\lib\cortex-m4\hard-float\short-wchar\oberon_3.0.8.lib</FilePath>            </File>          </Files>
         </Group>        <Group>
           <GroupName>nRF_Segger_RTT</GroupName>
           <Files>            <File>
@@ -966,7 +966,7 @@
     </filter>    <package name="CMSIS" url="http://www.keil.com/pack/" vendor="ARM" version="5.6.0">
       <targetInfos>        <targetInfo name="nrf52840_xxaa" versionMatchMode="fixed"/>      </targetInfos>
     </package>
-    <package name="nRF_DeviceFamilyPack" url="http://developer.nordicsemi.com/nRF51_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.35.0">
+    <package name="nRF_DeviceFamilyPack" url="http://developer.nordicsemi.com/nRF51_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.40.3">
       <targetInfos>        <targetInfo name="nrf52840_xxaa" versionMatchMode="fixed"/>      </targetInfos>
     </package>  </packages>
   <apis/>
@@ -974,8 +974,8 @@
       <package name="CMSIS" url="http://www.keil.com/pack/" vendor="ARM" version="5.6.0"/>
       <targetInfos>        <targetInfo name="nrf52840_xxaa" versionMatchMode="fixed"/>      </targetInfos>
     </component>
-    <component Cclass="Device" Cgroup="Startup" Cvendor="NordicSemiconductor" Cversion="8.35.0" condition="nRF5x Series CMSIS Device">
-      <package name="nRF_DeviceFamilyPack" url="http://developer.nordicsemi.com/nRF51_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.35.0"/>
+    <component Cclass="Device" Cgroup="Startup" Cvendor="NordicSemiconductor" Cversion="8.40.3" condition="nRF5x Series CMSIS Device">
+      <package name="nRF_DeviceFamilyPack" url="http://developer.nordicsemi.com/nRF51_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.40.3"/>
       <targetInfos>        <targetInfo name="nrf52840_xxaa"/>      </targetInfos>
     </component>  </components>
   <files>  </files>

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -90,31 +90,3 @@ uint32_t dtm_radio_validate(int32_t           m_tx_power, uint8_t           m_ra
 
     return DTM_SUCCESS;
 }
-
-
-bool dtm_hw_set_timer(NRF_TIMER_Type ** mp_timer, IRQn_Type * m_timer_irq, uint32_t new_timer)
-{
-    if (new_timer == 0)
-    {
-        *mp_timer    = NRF_TIMER0;
-        *m_timer_irq = TIMER0_IRQn;
-    }
-    else if (new_timer == 1)
-    {
-        *mp_timer    = NRF_TIMER1;
-        *m_timer_irq = TIMER1_IRQn;
-    }
-    else if (new_timer == 2)
-    {
-        *mp_timer    = NRF_TIMER2;
-        *m_timer_irq = TIMER2_IRQn;
-    }
-    else
-    {
-        // Parameter error: Only TIMER 0, 1, 2 provided by nRF51
-        return false;
-    }
-    // New timer has been selected:
-    return true;
-}
-

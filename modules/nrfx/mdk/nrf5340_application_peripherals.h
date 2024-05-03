@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010 - 2020, Nordic Semiconductor ASA
+Copyright (c) 2010 - 2021, Nordic Semiconductor ASA
 
 All rights reserved.
 
@@ -46,6 +46,8 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Clock Peripheral */
 #define CLOCK_PRESENT
 #define CLOCK_COUNT 1
+
+#define CLOCK_FEATURE_HFCLK_DIVIDE_PRESENT
 
 /* Power Peripheral */
 #define POWER_PRESENT

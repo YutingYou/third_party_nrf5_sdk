@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -78,6 +78,8 @@ ret_code_t gscm_init(void);
  * @retval NRF_SUCCESS                    Store operation started.
  * @retval BLE_ERROR_INVALID_CONN_HANDLE  conn_handle does not refer to an active connection with a
  *                                        bonded peer.
+ * @retval NRF_ERROR_INVALID_DATA         Refused to update because the GATT database is already up
+ *                                        to date.
  * @retval NRF_ERROR_BUSY                 Unable to perform operation at this time. Reattempt later.
  * @retval NRF_ERROR_DATA_SIZE            Write buffer not large enough. Call will never work with
  *                                        this GATT database.

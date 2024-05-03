@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -48,15 +48,18 @@
  *
  * @see [RFC 5869 - HMAC-based Extract-and-Expand Key Derivation Function (HKDF)](http://tools.ietf.org/html/rfc5869)
  */
+
 #ifndef OCRYPTO_HKDF_SHA1_H
 #define OCRYPTO_HKDF_SHA1_H
 
 #include <stddef.h>
 #include <stdint.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * Maximum length of a derived key.
@@ -98,3 +101,4 @@ void ocrypto_hkdf_sha1(
 #endif /* #ifndef OCRYPTO_HKDF_SHA1_H */
 
 /** @} */
+

@@ -520,6 +520,42 @@
 //#define MBEDTLS_ECP_NORMALIZE_MXZ_ALT
 
 /**
+ * \def MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN
+ *
+ * Enable testing of the constant-flow nature of some sensitive functions with
+ * clang's MemorySanitizer. This causes some existing tests to also test
+ * this non-functional property of the code under test.
+ *
+ * This setting requires compiling with clang -fsanitize=memory. The test
+ * suites can then be run normally.
+ *
+ * \warning This macro is only used for extended testing; it is not considered
+ * part of the library's API, so it may change or disappear at any time.
+ *
+ * Uncomment to enable testing of the constant-flow nature of selected code.
+ */
+//#define MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN
+
+/**
+ * \def MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND
+ *
+ * Enable testing of the constant-flow nature of some sensitive functions with
+ * valgrind's memcheck tool. This causes some existing tests to also test
+ * this non-functional property of the code under test.
+ *
+ * This setting requires valgrind headers for building, and is only useful for
+ * testing if the tests suites are run with valgrind's memcheck. This can be
+ * done for an individual test suite with 'valgrind ./test_suite_xxx', or when
+ * using CMake, this can be done for all test suites with 'make memcheck'.
+ *
+ * \warning This macro is only used for extended testing; it is not considered
+ * part of the library's API, so it may change or disappear at any time.
+ *
+ * Uncomment to enable testing of the constant-flow nature of selected code.
+ */
+//#define MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND
+
+/**
  * \def MBEDTLS_TEST_NULL_ENTROPY
  *
  * Enables testing and use of mbed TLS without any configured entropy sources.
@@ -733,7 +769,7 @@
  *
  * A man-in-the-browser attacker can recover authentication tokens sent through
  * a TLS connection using a 3DES based cipher suite (see "On the Practical
- * (In-)Security of 64-bit Block Ciphers" by Karthikeyan Bhargavan and Ga�tan
+ * (In-)Security of 64-bit Block Ciphers" by Karthikeyan Bhargavan and Gaëtan
  * Leurent, see https://sweet32.info/SWEET32_CCS16.pdf). If this attack falls
  * in your threat model or you are unsure, then you should keep this option
  * enabled to remove 3DES based cipher suites.
@@ -774,6 +810,28 @@
  * Comment this macro to disable NIST curves optimisation.
  */
 #define MBEDTLS_ECP_NIST_OPTIM
+
+/**
+ * \def MBEDTLS_ECP_NO_INTERNAL_RNG
+ *
+ * When this option is disabled, mbedtls_ecp_mul() will make use of an
+ * internal RNG when called with a NULL \c f_rng argument, in order to protect
+ * against some side-channel attacks.
+ *
+ * This protection introduces a dependency of the ECP module on one of the
+ * DRBG or SHA modules (HMAC-DRBG, CTR-DRBG, SHA-512 or SHA-256.) For very
+ * constrained applications that don't require this protection (for example,
+ * because you're only doing signature verification, so not manipulating any
+ * secret, or because local/physical side-channel attacks are outside your
+ * threat model), it might be desirable to get rid of that dependency.
+ *
+ * \warning Enabling this option makes some uses of ECP vulnerable to some
+ * side-channel attacks. Only enable it if you know that's not a problem for
+ * your use case.
+ *
+ * Uncomment this macro to disable some counter-measures in ECP.
+ */
+//#define MBEDTLS_ECP_NO_INTERNAL_RNG
 
 /**
  * \def MBEDTLS_ECP_RESTARTABLE
@@ -1659,6 +1717,23 @@
 //#define MBEDTLS_SSL_TRUNCATED_HMAC_COMPAT
 
 /**
+ * \def MBEDTLS_TEST_HOOKS
+ *
+ * Enable features for invasive testing such as introspection functions and
+ * hooks for fault injection. This enables additional unit tests.
+ *
+ * Merely enabling this feature should not change the behavior of the product.
+ * It only adds new code, and new branching points where the default behavior
+ * is the same as when this feature is disabled.
+ * However, this feature increases the attack surface: there is an added
+ * risk of vulnerabilities, and more gadgets that can make exploits easier.
+ * Therefore this feature must never be enabled in production.
+ *
+ * Uncomment to enable invasive tests.
+ */
+//#define MBEDTLS_TEST_HOOKS
+
+/**
  * \def MBEDTLS_THREADING_ALT
  *
  * Provide your own alternate threading implementation.
@@ -1750,7 +1825,7 @@
  *
  * Comment this macro to disallow using RSASSA-PSS in certificates.
  */
-//#define MBEDTLS_X509_RSASSA_PSS_SUPPORT
+#define MBEDTLS_X509_RSASSA_PSS_SUPPORT
 
 /**
  * \def MBEDTLS_ZLIB_SUPPORT
@@ -3038,7 +3113,7 @@
  */
 
 /* MPI / BIGNUM options */
-//#define MBEDTLS_MPI_WINDOW_SIZE            6 /**< Maximum windows size used. */
+//#define MBEDTLS_MPI_WINDOW_SIZE            6 /**< Maximum window size used. */
 //#define MBEDTLS_MPI_MAX_SIZE            1024 /**< Maximum number of bytes for usable MPIs. */
 
 /* CTR_DRBG options */
@@ -3050,7 +3125,7 @@ it is (2^48 - 1), our restriction is :  (int - 0xFFFF - 0xF).*/
 //#define MBEDTLS_CTR_DRBG_MAX_INPUT                256 /**< Maximum number of additional input bytes */
 //#define MBEDTLS_CTR_DRBG_MAX_REQUEST             1024 /**< Maximum number of requested bytes per call */
 //#define MBEDTLS_CTR_DRBG_MAX_SEED_INPUT           384 /**< Maximum size of (re)seed buffer */
-
+#define MBEDTLS_CTR_DRBG_USE_128_BIT_KEY              /**< Use 128-bit key for CTR_DRBG - may reduce security (see ctr_drbg.h) */
 /* HMAC_DRBG options */
 //#define MBEDTLS_HMAC_DRBG_RESEED_INTERVAL   10000 /**< Interval before reseed is performed by default */
 //#define MBEDTLS_HMAC_DRBG_MAX_INPUT           256 /**< Maximum number of additional input bytes */
@@ -3064,7 +3139,7 @@ it is (2^48 - 1), our restriction is :  (int - 0xFFFF - 0xF).*/
 
 /* Entropy options */
 //#define MBEDTLS_ENTROPY_MAX_SOURCES                20 /**< Maximum number of sources supported */
-//#define MBEDTLS_ENTROPY_MAX_GATHER                128 /**< Maximum amount requested from entropy sources */
+//#define MBEDTLS_ENTROPY_MAX_GATHER                144 /**< Maximum amount requested from entropy sources */
 //#define MBEDTLS_ENTROPY_MIN_HARDWARE               32 /**< Default minimum number of bytes required for the hardware entropy source mbedtls_hardware_poll() before entropy is released */
 
 /* Memory buffer allocator options */

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -221,7 +221,8 @@ typedef struct
     nrf_ble_bms_features_t  feature;             //!< Initial value for features of the service.
     security_req_t          bms_feature_sec_req; //!< Initial security level for the Feature characteristic.
     security_req_t          bms_ctrlpt_sec_req;  //!< Initial security level for the Control Point characteristic.
-    nrf_ble_qwr_t         * p_qwr;               //!< Pointer to the initialized Queued Write context.
+    nrf_ble_qwr_t         * p_qwr;               //!< Pointer to the initialized Queued Write contexts.
+    uint8_t                 qwr_count;           //!< Initialized Queue Write contexts count.
     nrf_ble_bms_bond_cbs_t  bond_callbacks;      //!< Callback functions for deleting bonds.
 } nrf_ble_bms_init_t;
 
@@ -271,6 +272,8 @@ ret_code_t nrf_ble_bms_init(nrf_ble_bms_t * p_bms, nrf_ble_bms_init_t * p_bms_in
  *
  * @details Call this function when a link with a peer has been established to
  *          associate the link to this instance of the module.
+ * 
+ * @note Currently this function is deprecated.
  *
  * @param[in]   p_bms       Pointer to the BMS structure instance to associate.
  * @param[in]   conn_handle Connection handle to be associated with the given BMS instance.

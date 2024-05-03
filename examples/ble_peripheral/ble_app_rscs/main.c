@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2012 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -207,6 +207,7 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 static void pm_evt_handler(pm_evt_t const * p_evt)
 {
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)

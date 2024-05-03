@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018-2020 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -43,7 +43,7 @@
 #include "radio_test.h"
 
 /** Indicates devices that support BLE LR and 802.15.4 radio modes. */
-#if defined(NRF52840_XXAA) || defined(NRF52833_XXAA)
+#if defined(NRF52840_XXAA) || defined(NRF52833_XXAA) || defined(NRF52820_XXAA)
     #define USE_MORE_NRF52_RADIO_POWER_OPTIONS 1
 #else
     #define USE_MORE_NRF52_RADIO_POWER_OPTIONS 0

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -135,6 +135,7 @@ ret_code_t nrf_ringbuf_cpy_put(nrf_ringbuf_t const * p_ringbuf,
     }
     memcpy(&p_ringbuf->p_buffer[masked_wr_idx], p_data, length);
     p_ringbuf->p_cb->wr_idx += *p_length;
+    p_ringbuf->p_cb->tmp_wr_idx = p_ringbuf->p_cb->wr_idx;
 
     UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->wr_flag));
 
@@ -215,6 +216,7 @@ ret_code_t nrf_ringbuf_cpy_get(nrf_ringbuf_t const * p_ringbuf,
     }
     memcpy(p_data, &p_ringbuf->p_buffer[masked_rd_idx], length);
     p_ringbuf->p_cb->rd_idx += *p_length;
+    p_ringbuf->p_cb->tmp_rd_idx = p_ringbuf->p_cb->rd_idx;
 
     UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->rd_flag));
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -59,9 +59,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * Length of a public key.
@@ -133,3 +135,4 @@ int ocrypto_ed25519_verify(const uint8_t sig[ocrypto_ed25519_BYTES],
 #endif /* #ifndef OCRYPTO_ED25519_H */
 
 /** @} */
+

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -531,7 +531,12 @@ static ret_code_t setup_endpoint_req_std(app_usbd_setup_evt_t const * p_setup_ev
             if ((!NRF_USBD_EPISO_CHECK(ep_addr)) &&
                 (p_setup_ev->setup.wValue.w == APP_USBD_SETUP_STDFEATURE_ENDPOINT_HALT))
             {
-                if ((usb_state == APP_USBD_STATE_Configured) || (NRF_USBD_EP_NR_GET(ep_addr) == 0))
+                /* Halt feature is not supported on EP0. */
+                if (NRF_USBD_EP_NR_GET(ep_addr) == 0)
+                {
+                    return NRF_ERROR_NOT_SUPPORTED;
+                }
+                else if (usb_state == APP_USBD_STATE_Configured)
                 {
                     nrf_drv_usbd_ep_stall(ep_addr);
                     return NRF_SUCCESS;
@@ -548,7 +553,12 @@ static ret_code_t setup_endpoint_req_std(app_usbd_setup_evt_t const * p_setup_ev
             if ((!NRF_USBD_EPISO_CHECK(ep_addr)) &&
                 (p_setup_ev->setup.wValue.w == APP_USBD_SETUP_STDFEATURE_ENDPOINT_HALT))
             {
-                if ((usb_state == APP_USBD_STATE_Configured) || (NRF_USBD_EP_NR_GET(ep_addr) == 0))
+                /* Halt feature is not supported on EP0. */
+                if (NRF_USBD_EP_NR_GET(ep_addr) == 0)
+                {
+                    return NRF_ERROR_NOT_SUPPORTED;
+                }
+                else if (usb_state == APP_USBD_STATE_Configured)
                 {
                     nrf_drv_usbd_ep_dtoggle_clear(ep_addr);
                     nrf_drv_usbd_ep_stall_clear(ep_addr);

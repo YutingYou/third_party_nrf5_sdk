@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010 - 2020, Nordic Semiconductor ASA
+Copyright (c) 2010 - 2021, Nordic Semiconductor ASA
 
 All rights reserved.
 
@@ -49,11 +49,6 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #ifndef NRF_STRING_CONCATENATE
     #define NRF_STRING_CONCATENATE(lhs, rhs) NRF_STRING_CONCATENATE_IMPL(lhs, rhs)
-#endif
-#if  __LINT__ == 1
-    #ifndef NRF_STATIC_ASSERT
-        #define NRF_STATIC_ASSERT(cond, msg)
-    #endif
 #endif
 
 #if defined ( __CC_ARM )
@@ -118,6 +113,11 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define GET_SP()                __current_sp()
 
     #ifndef NRF_STATIC_ASSERT
+        #ifdef __cplusplus
+            #ifndef _Static_assert
+                #define _Static_assert static_assert
+            #endif
+        #endif
         #define NRF_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
     #endif
 
@@ -135,13 +135,23 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         #define __WEAK              __weak
     #endif
 
-    #ifndef __ALIGN
-        #define STRING_PRAGMA(x) _Pragma(#x)
-        #define __ALIGN(n) STRING_PRAGMA(data_alignment = n)
-    #endif
+    #if (__VER__ >= 8000000)
+        #ifndef __ALIGN
+            #define __ALIGN(n) __attribute__((aligned(x)))
+        #endif
 
-    #ifndef __PACKED
-        #define __PACKED            __packed
+        #ifndef   __PACKED
+            #define __PACKED __attribute__((packed, aligned(1)))
+        #endif
+    #else
+        #ifndef __ALIGN
+            #define STRING_PRAGMA(x) _Pragma(#x)
+            #define __ALIGN(n) STRING_PRAGMA(data_alignment = n)
+        #endif
+
+        #ifndef   __PACKED
+            #define __PACKED __packed
+        #endif
     #endif
 
     #ifndef __UNUSED
@@ -190,6 +200,11 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
     #ifndef NRF_STATIC_ASSERT
+        #ifdef __cplusplus
+            #ifndef _Static_assert
+                #define _Static_assert static_assert
+            #endif
+        #endif
         #define NRF_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
     #endif
 

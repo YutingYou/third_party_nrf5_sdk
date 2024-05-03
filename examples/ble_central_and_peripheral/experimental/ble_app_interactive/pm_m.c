@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -61,6 +61,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
     ret_code_t err_code;
 
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)
@@ -86,21 +87,6 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
 
             err_code = pm_sec_params_set(&sec_params);
             APP_ERROR_CHECK(err_code);
-        }
-        break;
-
-        case PM_EVT_CONN_SEC_FAILED:
-        {
-            if (p_evt->params.conn_sec_failed.error == PM_CONN_SEC_ERROR_PIN_OR_KEY_MISSING)
-            {
-                // Rebond if one party has lost its keys.
-                err_code = pm_conn_secure(p_evt->conn_handle, true);
-
-                if (err_code != NRF_ERROR_BUSY)
-                {
-                    APP_ERROR_CHECK(err_code);
-                }
-            }
         }
         break;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2012 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -45,9 +45,17 @@
 #include <stdbool.h>
 #include <string.h>
 #include "nrf.h"
+#include "nrf_timer.h"
+#include "nrf_radio.h"
 #if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
 #include "nrf21540.h"
 #endif
+
+#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
+#if NRF21540_INTERRUPT_PRIORITY >= DTM_RADIO_IRQ_PRIORITY
+#error "nRF21540 interrupt priority must be smaller than radio interrupt priority"
+#endif
+#endif // defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
 
 #if NRF_RADIO_ANTENNA_COUNT > DTM_MAX_ANTENNA_CNT
 #error "Antena count must be smaller or equal 19" 
@@ -126,15 +134,16 @@
                         0x8A, 0x84, 0x39, 0xF4, 0x36, 0x0B, 0xF7}           /**< The PRBS9 sequence used as packet payload.
                                                                                  The bytes in the sequence is in the right order, but the bits of each byte in the array is reverse.
                                                                                  of that found by running the PRBS9 algorithm. This is because of the endianess of the nRF5 radio. */
-#if defined(NRF52832_XXAA) || defined(NRF52810_XXAA)
-#define DTM_SUPPORTED_FEATURE (DTM_LE_DATA_PACKET_LEN_EXTENSION | DTM_LE_2M_PHY)
-#elif defined(NRF52840_XXAA)
+
+#if defined(NRF52840_XXAA)
 #define DTM_SUPPORTED_FEATURE (DTM_LE_DATA_PACKET_LEN_EXTENSION | DTM_LE_2M_PHY | DTM_LE_CODED_PHY)
 #elif  defined(NRF52833_XXAA) || defined(NRF52811_XXAA) || defined(NRF52820_XXAA)
 #define DTM_SUPPORTED_FEATURE (DTM_LE_DATA_PACKET_LEN_EXTENSION | DTM_LE_2M_PHY | DTM_LE_CODED_PHY | \
                                DTM_LE_CONSTANT_TONE_EXTENSION | DTM_LE_ANTENNA_SWITCH |              \
                                DTM_LE_AOD_1US_TANSMISSION | DTM_LE_AOD_1US_RECEPTION |               \
                                DTM_LE_AOA_1US_RECEPTION)
+#else
+#define DTM_SUPPORTED_FEATURE (DTM_LE_DATA_PACKET_LEN_EXTENSION | DTM_LE_2M_PHY)
 #endif
 
 
@@ -185,7 +194,8 @@ typedef enum
 // Internal variables set as side effects of commands or events.
 static state_t            m_state = STATE_UNINITIALIZED;                      /**< Current machine state. */
 static uint16_t           m_rx_pkt_count;                                     /**< Number of valid packets received. */
-static pdu_type_t         m_pdu;                                              /**< PDU to be sent. */
+static pdu_type_t         m_pdu[2];                                           /**< Radio PDU buffers to be sent. */
+static pdu_type_t       * mp_current_pdu = m_pdu;                             /**< Radio PDU current buffer. */
 static uint16_t           m_event;                                            /**< current command status - initially "ok", may be set if error detected, or to packet count. */
 static bool               m_new_event;                                        /**< Command has been processed - number of not yet reported event bytes. */
 static uint32_t           m_packet_length;                                    /**< Payload length of transmitted PDU, bits 2:7 of 16-bit dtm command. */
@@ -205,8 +215,8 @@ static uint8_t            m_cte_info = 0;                                     /*
 // Nordic specific configuration values (not defined by BLE standard).
 // Definition of initial values found in ble_dtm.h
 static uint32_t          m_tx_power          = DEFAULT_TX_POWER;             /**< TX power for transmission test, default 0 dBm. */
-static NRF_TIMER_Type *  mp_timer            = DEFAULT_TIMER;                /**< Timer to be used. */
-static IRQn_Type         m_timer_irq         = DEFAULT_TIMER_IRQn;           /**< which interrupt line to clear on every timeout */
+static NRF_TIMER_Type *  mp_timer            = DTM_TIMER;                    /**< Timer to be used. */
+static IRQn_Type         m_timer_irq         = DTM_TIMER_IRQn;               /**< Interrupt used by the DTM Timer. */
 
 static uint8_t const     m_prbs_content[]    = PRBS9_CONTENT;                /**< Pseudo-random bit sequence defined by the BLE standard. */
 static uint8_t           m_packetHeaderLFlen = 8;                            /**< Length of length field in packet Header (in bits). */
@@ -368,8 +378,10 @@ static void radio_cte_prepare(bool rx)
 #endif // DIRECTION_FINDING_SUPPORTED
 
 /**@brief Function for verifying that a received PDU has the expected structure and content.
+ * 
+ * @param[in] pdu Pointer to radio pdu.
  */
-static bool check_pdu(void)
+static bool check_pdu(const pdu_type_t *pdu)
 {
     uint8_t        k;                // Byte pointer for running through PDU payload
     uint8_t        pattern;          // Repeating octet value in payload
@@ -377,8 +389,8 @@ static bool check_pdu(void)
     uint32_t       length = 0;
     uint8_t        header_len;
 
-    pdu_packet_type = (dtm_pkt_type_t)(m_pdu.content[DTM_HEADER_OFFSET] & 0x0F);
-    length          = m_pdu.content[DTM_LENGTH_OFFSET];
+    pdu_packet_type = (dtm_pkt_type_t)(pdu->content[DTM_HEADER_OFFSET] & 0x0F);
+    length          = pdu->content[DTM_LENGTH_OFFSET];
 
 #if DIRECTION_FINDING_SUPPORTED
     header_len = (m_cte_mode != CTE_MODE_OFF) ? DTM_HEADER_WITH_CTE_SIZE : DTM_HEADER_SIZE;
@@ -409,7 +421,7 @@ static bool check_pdu(void)
     if (pdu_packet_type == DTM_PKT_PRBS9)
     {
         // Payload does not consist of one repeated octet; must compare ir with entire block into
-        return (memcmp(m_pdu.content + header_len, m_prbs_content, length) == 0);
+        return (memcmp(pdu->content + header_len, m_prbs_content, length) == 0);
     }
 
     if (pdu_packet_type == DTM_PKT_0X0F)
@@ -433,7 +445,7 @@ static bool check_pdu(void)
     for (k = 0; k < length; k++)
     {
         // Check repeated pattern filling the PDU payload
-        if (m_pdu.content[k + header_len] != pattern)
+        if (pdu->content[k + header_len] != pattern)
         {
             return false;
         }
@@ -447,7 +459,7 @@ static bool check_pdu(void)
         uint8_t cte_sample_cnt;
         uint8_t expected_sample_cnt;
 
-        cte_info = m_pdu.content[DTM_HEADER_CTEINFO_OFFSET];
+        cte_info = pdu->content[DTM_HEADER_CTEINFO_OFFSET];
 
         expected_sample_cnt = DTM_CTE_REF_SAMPLE_CNT + ((m_cte_time * 8)) /
                               ((m_cte_slot == CTE_SLOT_1US) ? 2 : 4);
@@ -487,6 +499,12 @@ static void radio_reset(void)
     NRF_RADIO->TASKS_RXEN      = 0;
     NRF_RADIO->TASKS_TXEN      = 0;
 #endif
+
+    NVIC_DisableIRQ(RADIO_IRQn);
+    nrf_radio_int_disable(NRF_RADIO_INT_READY_MASK |
+                          NRF_RADIO_INT_ADDRESS_MASK |
+                          NRF_RADIO_INT_END_MASK);
+
     m_rx_pkt_count = 0;
 
     NRF_RADIO->PCNF0 &= ~RADIO_PCNF0_S1LEN_Msk;
@@ -591,6 +609,22 @@ uint8_t anomaly_172_rssi_check(void)
     return rssi;
 }
 
+/**@brief Function for swapping the pdu buffer for radio rx operation.
+ * 
+ * @retval Pointer to received data in the last rx operation.
+ */
+static pdu_type_t *radio_buffer_swap(void)
+{
+    pdu_type_t *received_pdu = mp_current_pdu;
+    uint32_t packet_index = (mp_current_pdu == m_pdu);
+
+    mp_current_pdu = &m_pdu[packet_index];
+
+    NRF_RADIO->PACKETPTR = (uint32_t)mp_current_pdu;
+
+    return received_pdu;
+}
+
 /**@brief Function for preparing the radio. At start of each test: Turn off RF, clear interrupt flags of RF, initialize the radio
  *        at given RF channel.
  *
@@ -610,7 +644,7 @@ static void radio_prepare(bool rx)
     NRF_RADIO->CRCPOLY      = m_crc_poly;
     NRF_RADIO->CRCINIT      = m_crc_init;
     NRF_RADIO->FREQUENCY    = (m_phys_ch << 1) + 2;                  // Actual frequency (MHz): 2400 + register value
-    NRF_RADIO->PACKETPTR    = (uint32_t)&m_pdu;                      // Setting packet pointer will start the radio
+    NRF_RADIO->PACKETPTR    = (uint32_t)mp_current_pdu;              // Setting packet pointer will start the radio
     NRF_RADIO->EVENTS_READY = 0;
 
 #if !defined(NRF21540_DRIVER_ENABLE) || (NRF21540_DRIVER_ENABLE == 0)
@@ -628,6 +662,14 @@ static void radio_prepare(bool rx)
      NRF_RADIO->SHORTS |= (1 << RADIO_SHORTS_END_DISABLE_Pos);     // Shortcut between END event and DISABLE task
 #endif // DIRECTION_FINDING_SUPPORTED
 #endif // !defined(NRF21540_DRIVER_ENABLE) || (NRF21540_DRIVER_ENABLE == 0)
+
+    // Enable radio interrupts
+    NVIC_ClearPendingIRQ(RADIO_IRQn);
+    NVIC_EnableIRQ(RADIO_IRQn);
+
+    nrf_radio_int_enable(NRF_RADIO_INT_READY_MASK |
+                         NRF_RADIO_INT_ADDRESS_MASK |
+                         NRF_RADIO_INT_END_MASK);
 
     if (rx)
     {
@@ -652,10 +694,12 @@ static void radio_prepare(bool rx)
         // Stop the timer used by nRF52840 anomaly 172 if running on an affected device.
         if (anomaly_172_wa_enabled)
         {
-            ANOMALY_172_TIMER->TASKS_CLEAR          = 1;
-            ANOMALY_172_TIMER->TASKS_STOP           = 1;
-            ANOMALY_172_TIMER->EVENTS_COMPARE[0]    = 0;
-            ANOMALY_172_TIMER->EVENTS_COMPARE[1]    = 0;
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_CLEAR);
+            nrf_timer_event_clear(ANOMALY_172_TIMER,
+                                  nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+            nrf_timer_event_clear(ANOMALY_172_TIMER,
+                                  nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1));
         }
     }
 }
@@ -673,7 +717,7 @@ static void dtm_test_done(void)
     NRF_PPI->CH[0].EEP = 0;     // Break connection from timer to radio to stop transmit loop
     NRF_PPI->CH[0].TEP = 0;
 #endif
-    ANOMALY_172_TIMER->TASKS_SHUTDOWN = 1;
+    nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);
 
     radio_reset();
     m_state = STATE_IDLE;
@@ -694,42 +738,61 @@ static uint32_t timer_init(void)
         // Do nothing while waiting for the clock to start
     }
 
-    mp_timer->TASKS_STOP        = 1;                      // Stop timer, if it was running
-    mp_timer->TASKS_CLEAR       = 1;
-    mp_timer->MODE              = TIMER_MODE_MODE_Timer;  // Timer mode (not counter)
-    mp_timer->EVENTS_COMPARE[0] = 0;                      // clean up possible old events
-    mp_timer->EVENTS_COMPARE[1] = 0;
-    mp_timer->EVENTS_COMPARE[2] = 0;
-    mp_timer->EVENTS_COMPARE[3] = 0;
+    nrf_timer_task_trigger(mp_timer, NRF_TIMER_TASK_STOP);            // Stop timer, if it was running
+    nrf_timer_task_trigger(mp_timer, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_mode_set(mp_timer, NRF_TIMER_MODE_TIMER);               // Timer mode (not counter)
 
-    // Timer is polled, but enable the compare0 interrupt in order to wakeup from CPU sleep
-    mp_timer->INTENSET    = TIMER_INTENSET_COMPARE0_Msk;
-    mp_timer->SHORTS      = 1 << TIMER_SHORTS_COMPARE0_CLEAR_Pos;  // Clear the count every time timer reaches the CCREG0 count
-    mp_timer->PRESCALER   = 4;                                     // Input clock is 16MHz, timer clock = 2 ^ prescale -> interval 1us
-    mp_timer->CC[0]       = m_txIntervaluS;                        // 625uS with 1MHz clock to the timer
-    mp_timer->CC[1]       = UART_POLL_CYCLE;                       // Depends on the baud rate of the UART. Default baud rate of 19200 will result in a 260uS time with 1MHz clock to the timer
-    mp_timer->TASKS_START = 1;                                     // Start the timer - it will be running continuously
-    m_current_time        = 0;
+    nrf_timer_event_clear(mp_timer,                                   // clean up possible old events
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+    nrf_timer_event_clear(mp_timer,
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1));
+    nrf_timer_event_clear(mp_timer,
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL2));
+    nrf_timer_event_clear(mp_timer,
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL3));
+    
+    nrf_timer_frequency_set(mp_timer, NRF_TIMER_FREQ_1MHz);                 // Input clock is 16MHz, timer clock = 2 ^ prescale -> interval 1us
+
+    nrf_timer_shorts_enable(mp_timer, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK); // Clear the count every time timer reaches the CCREG0 count
+    nrf_timer_int_enable(mp_timer, NRF_TIMER_INT_COMPARE0_MASK);
+
+    nrf_timer_cc_write(mp_timer, NRF_TIMER_CC_CHANNEL0, m_txIntervaluS);    // 625uS with 1MHz clock to the timer
+    nrf_timer_cc_write(mp_timer, NRF_TIMER_CC_CHANNEL1, UART_POLL_CYCLE);   // Depends on the baud rate of the UART. Default baud rate of 19200 will result in a 260uS time with 1MHz clock to the timer
+
+    NVIC_ClearPendingIRQ(m_timer_irq);
+    NVIC_SetPriority(m_timer_irq, DTM_TIMER_IRQ_PRIORITY);
+    NVIC_EnableIRQ(m_timer_irq);
+
+    nrf_timer_task_trigger(mp_timer, NRF_TIMER_TASK_START);                 // Start the timer - it will be running continuously                                 
+
+    m_current_time = 0;
 
 
     // Enable the timer used by nRF52840 anomaly 172 if running on an affected device.
-    if (true)
-    {
-        ANOMALY_172_TIMER->TASKS_STOP        = 1;                      // Stop timer, if it was running
-        ANOMALY_172_TIMER->TASKS_CLEAR       = 1;
-        ANOMALY_172_TIMER->MODE              = TIMER_MODE_MODE_Timer;  // Timer mode (not counter)
-        ANOMALY_172_TIMER->EVENTS_COMPARE[0] = 0;                      // clean up possible old events
-        ANOMALY_172_TIMER->EVENTS_COMPARE[1] = 0;
-        ANOMALY_172_TIMER->EVENTS_COMPARE[2] = 0;
-        ANOMALY_172_TIMER->EVENTS_COMPARE[3] = 0;
+    nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);            // Stop timer, if it was running
+    nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_mode_set(ANOMALY_172_TIMER, NRF_TIMER_MODE_TIMER);               // Timer mode (not counter)
+    nrf_timer_event_clear(ANOMALY_172_TIMER,                                   // clean up possible old events
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+    nrf_timer_event_clear(ANOMALY_172_TIMER,
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1));
+    nrf_timer_event_clear(ANOMALY_172_TIMER,
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL2));
+    nrf_timer_event_clear(ANOMALY_172_TIMER,
+                          nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL3));
 
-        ANOMALY_172_TIMER->CC[0] = BLOCKER_FIX_WAIT_DEFAULT;
-        ANOMALY_172_TIMER->CC[1] = 0;
+    nrf_timer_cc_write(ANOMALY_172_TIMER, NRF_TIMER_CC_CHANNEL0, BLOCKER_FIX_WAIT_DEFAULT);
+    nrf_timer_cc_write(ANOMALY_172_TIMER, NRF_TIMER_CC_CHANNEL1, 0);
 
-        NVIC_ClearPendingIRQ(ANOMALY_172_TIMER_IRQn);
 
-        ANOMALY_172_TIMER->PRESCALER   = 7;                                     // Input clock is 16MHz, timer clock = 2 ^ prescale -> interval 1us
-    }
+    nrf_timer_frequency_set(ANOMALY_172_TIMER, NRF_TIMER_FREQ_125kHz); // Input clock is 16MHz, timer clock = 2 ^ prescale -> interval 1us
+
+    NVIC_ClearPendingIRQ(ANOMALY_172_TIMER_IRQn);
+    NVIC_SetPriority(ANOMALY_172_TIMER_IRQn, DTM_ANOMALY_172_TIMER_IRQ_PRIORITY);
+    NVIC_EnableIRQ(ANOMALY_172_TIMER_IRQn);
+
+    nrf_timer_int_enable(ANOMALY_172_TIMER,
+                         NRF_TIMER_INT_COMPARE0_MASK);
 
     return DTM_SUCCESS;
 }
@@ -775,14 +838,6 @@ static uint32_t dtm_vendor_specific_pkt(uint32_t vendor_cmd, dtm_freq_t vendor_o
 
         case SET_TX_POWER:
             if (!dtm_set_txpower(vendor_option))
-            {
-                m_event = LE_TEST_STATUS_EVENT_ERROR;
-                return DTM_ERROR_ILLEGAL_CONFIGURATION;
-            }
-            break;
-
-        case SELECT_TIMER:
-            if (!dtm_set_timer(vendor_option))
             {
                 m_event = LE_TEST_STATUS_EVENT_ERROR;
                 return DTM_ERROR_ILLEGAL_CONFIGURATION;
@@ -922,7 +977,7 @@ static uint32_t phy_set(uint8_t phy)
 #endif
         // Disable the workaround for nRF52840 anomaly 172.
         set_strict_mode(0);
-        ANOMALY_172_TIMER->TASKS_SHUTDOWN = 1;
+        nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);
         anomaly_172_wa_enabled = false;
 
         return radio_init();
@@ -939,7 +994,7 @@ static uint32_t phy_set(uint8_t phy)
 
         // Disable the workaround for nRF52840 anomaly 172.
         set_strict_mode(0);
-        ANOMALY_172_TIMER->TASKS_SHUTDOWN = 1;
+        nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);
         anomaly_172_wa_enabled = false;
 
         return radio_init();
@@ -1296,13 +1351,13 @@ static uint32_t on_test_setup_cmd(uint8_t control, uint8_t parameter)
             break;
 
         case LE_TEST_SETUP_SET_UPPER:
-            if (parameter > LE_SET_UPER_BITS_MAX_RANGE)
+            if (parameter > LE_SET_UPPER_BITS_MAX_RANGE)
             {
                 m_event = LE_TEST_STATUS_EVENT_ERROR;
                 return DTM_ERROR_ILLEGAL_CONFIGURATION;
             }
  
-            m_packet_length = (parameter && LE_UPPER_BITS_MASK) << LE_UPPER_BITS_POS;
+            m_packet_length = (parameter & LE_UPPER_BITS_MASK) << LE_UPPER_BITS_POS;
         
             break;
 
@@ -1361,6 +1416,8 @@ static uint32_t on_test_end_cmd(void)
 static uint32_t on_test_transmit_cmd(uint32_t length, dtm_freq_t freq)
 {
         uint8_t header_len;
+
+        mp_current_pdu = m_pdu;
  
         // Check for illegal values of m_packet_length. Skip the check if the packet is vendor spesific.
         if (m_packet_type != DTM_PKT_TYPE_VENDORSPECIFIC && m_packet_length > DTM_PAYLOAD_MAX_SIZE)
@@ -1376,32 +1433,32 @@ static uint32_t on_test_transmit_cmd(uint32_t length, dtm_freq_t freq)
         header_len = DTM_HEADER_SIZE;
 #endif // DIRECTION_FINDING_SUPPORTED
 
-        m_pdu.content[DTM_LENGTH_OFFSET] = m_packet_length;
+        mp_current_pdu->content[DTM_LENGTH_OFFSET] = m_packet_length;
         // Note that PDU uses 4 bits even though BLE DTM uses only 2 (the HCI SDU uses all 4)
         switch (m_packet_type)
         {
             case DTM_PKT_PRBS9:
-                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_PRBS9;
+                mp_current_pdu->content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_PRBS9;
                 // Non-repeated, must copy entire pattern to PDU
-                memcpy(m_pdu.content + header_len, m_prbs_content, m_packet_length);
+                memcpy(mp_current_pdu->content + header_len, m_prbs_content, m_packet_length);
                 break;
 
             case DTM_PKT_0X0F:
-                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0X0F;
+                mp_current_pdu->content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0X0F;
                 // Bit pattern 00001111 repeated
-                memset(m_pdu.content + header_len, RFPHY_TEST_0X0F_REF_PATTERN, m_packet_length);
+                memset(mp_current_pdu->content + header_len, RFPHY_TEST_0X0F_REF_PATTERN, m_packet_length);
                 break;
 
             case DTM_PKT_0X55:
-                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0X55;
+                mp_current_pdu->content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0X55;
                 // Bit pattern 01010101 repeated
-                memset(m_pdu.content + header_len, RFPHY_TEST_0X55_REF_PATTERN, m_packet_length);
+                memset(mp_current_pdu->content + header_len, RFPHY_TEST_0X55_REF_PATTERN, m_packet_length);
                 break;
 
             case DTM_PKT_0XFF:
-                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0XFF;
+                mp_current_pdu->content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0XFF;
                 // Bit pattern 11111111 repeated. Only available in coded PHY (Long range).
-                memset(m_pdu.content + header_len, RFPHY_TEST_0XFF_REF_PATTERN, m_packet_length);
+                memset(mp_current_pdu->content + header_len, RFPHY_TEST_0XFF_REF_PATTERN, m_packet_length);
                 break;
 
             case DTM_PKT_TYPE_VENDORSPECIFIC:
@@ -1418,8 +1475,8 @@ static uint32_t on_test_transmit_cmd(uint32_t length, dtm_freq_t freq)
 #if DIRECTION_FINDING_SUPPORTED
         if (m_cte_mode != CTE_MODE_OFF)
         {
-            m_pdu.content[DTM_HEADER_OFFSET]         |= DTM_PKT_CP_BIT;
-            m_pdu.content[DTM_HEADER_CTEINFO_OFFSET]  = m_cte_info;
+            mp_current_pdu->content[DTM_HEADER_OFFSET]         |= DTM_PKT_CP_BIT;
+            mp_current_pdu->content[DTM_HEADER_CTEINFO_OFFSET]  = m_cte_info;
         }
 #endif // DIRECTION_FINDING_SUPPORTED
 
@@ -1428,15 +1485,19 @@ static uint32_t on_test_transmit_cmd(uint32_t length, dtm_freq_t freq)
 
         // Set the timer to the correct period. The delay between each packet is described in the
         // Bluetooth Core Specification version 4.2 Vol. 6 Part F Section 4.1.6.
-        mp_timer->CC[0] = dtm_packet_interval_calculate(m_packet_length, m_radio_mode);
+        nrf_timer_cc_write(mp_timer,
+                           NRF_TIMER_CC_CHANNEL0,
+                           dtm_packet_interval_calculate(m_packet_length, m_radio_mode));
 
 #if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
-        (void)nrf21540_tx_set((uint32_t)&mp_timer->EVENTS_COMPARE[0],
+        (void)nrf21540_tx_set((uint32_t) nrf_timer_event_address_get(mp_timer,
+                                  nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0)),
                                   NRF21540_EXEC_MODE_NON_BLOCKING);
 #else
         // Configure PPI so that timer will activate radio every 625 us
 
-        NRF_PPI->CH[0].EEP = (uint32_t)&mp_timer->EVENTS_COMPARE[0];
+        NRF_PPI->CH[0].EEP = (uint32_t)nrf_timer_event_address_get(mp_timer,
+                                            nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
         NRF_PPI->CH[0].TEP = (uint32_t)&NRF_RADIO->TASKS_TXEN;
         NRF_PPI->CHENSET   = 0x01;
 #endif
@@ -1448,8 +1509,11 @@ static uint32_t on_test_transmit_cmd(uint32_t length, dtm_freq_t freq)
 
 static uint32_t on_test_receive_cmd(void)
 {
+        mp_current_pdu = m_pdu;
+
         // Zero fill all pdu fields to avoid stray data from earlier test run
-        memset(&m_pdu, 0, DTM_PDU_MAX_MEMORY_SIZE);
+        memset(&m_pdu[0], 0, DTM_PDU_MAX_MEMORY_SIZE);
+        memset(&m_pdu[1], 0, DTM_PDU_MAX_MEMORY_SIZE);
         
         // Reinitialize "everything"; RF interrupts OFF
         radio_prepare(RX_MODE);
@@ -1470,10 +1534,14 @@ uint32_t dtm_init(void)
     m_state         = STATE_IDLE;
     m_packet_length = 0;
 
-#if defined(NRF52832_XXAA) || defined(NRF52840_XXAA) || defined(NRF52833_XXAA)
+#if defined(NRF_NVMC_ICACHE_PRESENT)
     // Enable cache
     NRF_NVMC->ICACHECNF = (NVMC_ICACHECNF_CACHEEN_Enabled << NVMC_ICACHECNF_CACHEEN_Pos) & NVMC_ICACHECNF_CACHEEN_Msk;
 #endif
+
+    // Set Radio interrupt priority
+    NVIC_SetPriority(RADIO_IRQn, DTM_RADIO_IRQ_PRIORITY);
+
     return DTM_SUCCESS;
 }
 
@@ -1482,144 +1550,13 @@ uint32_t dtm_wait(void)
 {
     for (;;)
     {
-
-        if (m_state == STATE_RECEIVER_TEST && NRF_RADIO->EVENTS_ADDRESS == 1)
-        {
-            NRF_RADIO->EVENTS_ADDRESS = 0;
-            if (anomaly_172_wa_enabled)
-            {
-                ANOMALY_172_TIMER->TASKS_SHUTDOWN = 1;
-            }
-        }
-
-        // Event may be the reception of a packet -
-        // handle radio first, to give it highest priority:
-        if (NRF_RADIO->EVENTS_END != 0)
-        {
-#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
-            if (m_state != STATE_CARRIER_TEST)
-            {
-                  (void)nrf21540_power_down(NRF21540_EXECUTE_NOW, NRF21540_EXEC_MODE_BLOCKING);
-            }
-#endif
-            NRF_RADIO->EVENTS_END = 0;
-#if !defined(NRF21540_DRIVER_ENABLE) || (NRF21540_DRIVER_ENABLE == 0) || \
-    (defined(NRF21540_DO_NOT_USE_NATIVE_RADIO_IRQ_HANDLER) && \
-    (NRF21540_DO_NOT_USE_NATIVE_RADIO_IRQ_HANDLER == 1))
-            NVIC_ClearPendingIRQ(RADIO_IRQn);
-#endif
-
-            if (m_state == STATE_RECEIVER_TEST)
-            {
-#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
-                (void) nrf21540_rx_set(NRF21540_EXECUTE_NOW,
-                                NRF21540_EXEC_MODE_BLOCKING);
-#else
-                NRF_RADIO->TASKS_RXEN = 1;
-#endif
-                if (anomaly_172_wa_enabled)
-                {
-                    ANOMALY_172_TIMER->CC[0]                = BLOCKER_FIX_WAIT_DEFAULT;
-                    ANOMALY_172_TIMER->CC[1]                = BLOCKER_FIX_WAIT_END;
-                    ANOMALY_172_TIMER->TASKS_CLEAR          = 1;
-                    ANOMALY_172_TIMER->EVENTS_COMPARE[0]    = 0;
-                    ANOMALY_172_TIMER->EVENTS_COMPARE[1]    = 0;
-                    ANOMALY_172_TIMER->TASKS_START          = 1;
-                }
-
-                if ((NRF_RADIO->CRCSTATUS == 1) && check_pdu())
-                {
-                    // Count the number of successfully received packets
-                    m_rx_pkt_count++;
-                }
-                // Note that failing packets are simply ignored (CRC or contents error).
-
-                // Zero fill all pdu fields to avoid stray data
-                memset(&m_pdu, 0, DTM_PDU_MAX_MEMORY_SIZE);
-            }
-            // If no RECEIVER_TEST is running, ignore incoming packets (but do clear IRQ!)
-        }
-
-        if (m_state == STATE_RECEIVER_TEST && NRF_RADIO->EVENTS_READY == 1)
-        {
-            NRF_RADIO->EVENTS_READY = 0;
-            if (anomaly_172_wa_enabled)
-            {
-                ANOMALY_172_TIMER->TASKS_CLEAR = 1;
-                ANOMALY_172_TIMER->TASKS_START = 1;
-            }
-        }
-
-        // Check for timeouts:
-        if (mp_timer->EVENTS_COMPARE[0] != 0)
-        {
-            mp_timer->EVENTS_COMPARE[0] = 0;
-#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
-            if (m_state == STATE_TRANSMITTER_TEST)
-            {
-                (void) nrf21540_tx_set((uint32_t) &mp_timer->EVENTS_COMPARE[0],
-                                          NRF21540_EXEC_MODE_NON_BLOCKING);
-            }
-#endif
-        }
-        else if (mp_timer->EVENTS_COMPARE[1] != 0)
+        if (nrf_timer_event_check(mp_timer,
+                        nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1)))
         {
             // Reset timeout event flag for next iteration.
-            mp_timer->EVENTS_COMPARE[1] = 0;
-            NVIC_ClearPendingIRQ(m_timer_irq);
+            nrf_timer_event_clear(mp_timer,
+                              nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1));
             return ++m_current_time;
-        }
-
-        if (ANOMALY_172_TIMER->EVENTS_COMPARE[0] == 1) {
-            uint8_t rssi = anomaly_172_rssi_check();
-            if (m_strict_mode) {
-                if (rssi > BLOCKER_FIX_RSSI_THRESHOLD) {
-                    set_strict_mode(0);
-                }
-            }
-            else
-            {
-                bool too_many_detects = false;
-                uint32_t packetcnt2 = *(volatile uint32_t *) 0x40001574;
-                uint32_t detect_cnt = packetcnt2 & 0xffff;
-                uint32_t addr_cnt   = (packetcnt2 >> 16) & 0xffff;
-
-                if ((detect_cnt > BLOCKER_FIX_CNTDETECTTHR) && (addr_cnt < BLOCKER_FIX_CNTADDRTHR)) {
-                    too_many_detects = true;
-                }
-
-                if ((rssi < BLOCKER_FIX_RSSI_THRESHOLD) || too_many_detects) {
-                    set_strict_mode(1);
-                }
-            }
-
-            anomaly_172_radio_operation();
-
-            ANOMALY_172_TIMER->CC[0]                = BLOCKER_FIX_WAIT_DEFAULT;
-            ANOMALY_172_TIMER->TASKS_STOP           = 1;
-            ANOMALY_172_TIMER->TASKS_CLEAR          = 1;
-            ANOMALY_172_TIMER->EVENTS_COMPARE[0]    = 0;
-            ANOMALY_172_TIMER->TASKS_START          = 1;
-
-            NVIC_ClearPendingIRQ(ANOMALY_172_TIMER_IRQn);
-        }
-
-        if (ANOMALY_172_TIMER->EVENTS_COMPARE[1] != 0) {
-            uint8_t rssi = anomaly_172_rssi_check();
-            if (rssi >= BLOCKER_FIX_RSSI_THRESHOLD) {
-                set_strict_mode(0);
-            }
-            else
-            {
-                set_strict_mode(1);
-            }
-
-            anomaly_172_radio_operation();
-
-            // Disable this event.
-            ANOMALY_172_TIMER->CC[1] = 0;
-            ANOMALY_172_TIMER->EVENTS_COMPARE[1] = 0;
-            NVIC_ClearPendingIRQ(ANOMALY_172_TIMER_IRQn);
         }
 
         // Other events: No processing
@@ -1755,29 +1692,6 @@ bool dtm_set_txpower(uint32_t new_tx_power)
     return true;
 }
 
-
-// =================================================================================================
-// Configuration functions (only for parameters not definitely determined by the BLE DTM standard).
-// These functions return true if successful, false if value could not be set
-
-/**@brief Function for selecting a timer resource.
- *        This function may be called directly, or through dtm_cmd() specifying
- *        DTM_PKT_VENDORSPECIFIC as payload, SELECT_TIMER as length, and the timer as freq
- *
- * @param[in] new_timer     Timer id for the timer to use: 0, 1, or 2.
- *
- * @return true if the timer was successfully changed, false otherwise.
- */
-bool dtm_set_timer(uint32_t new_timer)
-{
-    if (m_state > STATE_IDLE)
-    {
-        return false;
-    }
-    return dtm_hw_set_timer(&mp_timer, &m_timer_irq, new_timer);
-}
-
-
 #if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
 bool dtm_set_nrf21450_power_mode(dtm_nrf21540_power_mode_t power_mode)
 {
@@ -1812,6 +1726,182 @@ bool dtm_set_nrf21450_power_mode(dtm_nrf21540_power_mode_t power_mode)
     return false;
 }
 #endif // defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
+
+static void radio_end_event_process(void)
+{
+#if !defined(NRF21540_DRIVER_ENABLE) || (NRF21540_DRIVER_ENABLE == 0) || \
+    (defined(NRF21540_DO_NOT_USE_NATIVE_RADIO_IRQ_HANDLER) && \
+    (NRF21540_DO_NOT_USE_NATIVE_RADIO_IRQ_HANDLER == 1))
+    NVIC_ClearPendingIRQ(RADIO_IRQn);
+#endif
+
+    if (m_state == STATE_RECEIVER_TEST)
+    {
+        pdu_type_t * received_pdu = radio_buffer_swap();
+
+#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
+        (void) nrf21540_rx_set(NRF21540_EXECUTE_NOW, NRF21540_EXEC_MODE_NON_BLOCKING);
+#else
+        nrf_radio_task_trigger(NRF_RADIO_TASK_RXEN);
+#endif
+        if (anomaly_172_wa_enabled)
+        {
+            nrf_timer_cc_write(ANOMALY_172_TIMER, NRF_TIMER_CC_CHANNEL0, BLOCKER_FIX_WAIT_DEFAULT);
+            nrf_timer_cc_write(ANOMALY_172_TIMER, NRF_TIMER_CC_CHANNEL1, BLOCKER_FIX_WAIT_END);
+            nrf_timer_event_clear(ANOMALY_172_TIMER,
+                                  nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+            nrf_timer_event_clear(ANOMALY_172_TIMER,
+                                  nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1));
+
+            nrf_timer_int_enable(ANOMALY_172_TIMER,
+                         NRF_TIMER_INT_COMPARE1_MASK);
+
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_CLEAR);
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_START);
+        }
+
+        // Note that failing packets are simply ignored (CRC or contents error).
+        if (nrf_radio_crc_status_check() && check_pdu(received_pdu))
+        {
+            // Count the number of successfully received packets
+            m_rx_pkt_count++;
+        }
+
+        // Zero fill all pdu fields to avoid stray data
+        memset(received_pdu, 0, DTM_PDU_MAX_MEMORY_SIZE);
+    }
+}
+
+void RADIO_IRQHandler(void)
+{
+    if (nrf_radio_event_check(NRF_RADIO_EVENT_ADDRESS))
+    {
+        nrf_radio_event_clear(NRF_RADIO_EVENT_ADDRESS);
+        if ((m_state == STATE_RECEIVER_TEST) && anomaly_172_wa_enabled)
+        {
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);
+        }
+    }
+
+    if (nrf_radio_event_check(NRF_RADIO_EVENT_END))
+    {
+#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
+        if (m_state != STATE_CARRIER_TEST)
+        {
+            (void)nrf21540_power_down(NRF21540_EXECUTE_NOW, NRF21540_EXEC_MODE_BLOCKING);
+        }
+#endif
+        nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+
+        radio_end_event_process();
+    }
+    
+    if (nrf_radio_event_check(NRF_RADIO_EVENT_READY))
+    {
+        nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+        if ((m_state == STATE_RECEIVER_TEST) && anomaly_172_wa_enabled)
+        {
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_CLEAR);
+            nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_START);
+        }
+    }
+}
+
+void DTM_TIMER_IRQHandler(void)
+{
+    if (nrf_timer_event_check(mp_timer,
+                              nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0)))
+    {
+        nrf_timer_event_clear(mp_timer,
+                              nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+        
+#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
+        if (m_state == STATE_TRANSMITTER_TEST)
+        {
+            (void) nrf21540_tx_set((uint32_t) nrf_timer_event_address_get(mp_timer,
+                                   nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0)),
+                                   NRF21540_EXEC_MODE_NON_BLOCKING);
+        }
+#endif
+    }
+}
+
+void ANOMALY_172_TIMER_IRQHandler(void)
+{
+    if (nrf_timer_event_check(ANOMALY_172_TIMER,
+                        nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0)) &&
+        nrf_timer_int_enable_check(ANOMALY_172_TIMER,
+                        nrf_timer_compare_int_get(NRF_TIMER_CC_CHANNEL0)))
+    {
+        uint8_t rssi = anomaly_172_rssi_check();
+        if (m_strict_mode)
+        {
+            if (rssi > BLOCKER_FIX_RSSI_THRESHOLD)
+            {
+                set_strict_mode(0);
+            }
+        }
+        else
+        {
+            bool too_many_detects = false;
+            uint32_t packetcnt2 = *(volatile uint32_t *) 0x40001574;
+            uint32_t detect_cnt = packetcnt2 & 0xffff;
+            uint32_t addr_cnt   = (packetcnt2 >> 16) & 0xffff;
+
+            if ((detect_cnt > BLOCKER_FIX_CNTDETECTTHR) && (addr_cnt < BLOCKER_FIX_CNTADDRTHR))
+            {
+                too_many_detects = true;
+            }
+
+            if ((rssi < BLOCKER_FIX_RSSI_THRESHOLD) || too_many_detects)
+            {
+                 set_strict_mode(1);
+            }
+        }
+
+        anomaly_172_radio_operation();
+
+        nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_STOP);
+        nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_CLEAR);
+        nrf_timer_event_clear(ANOMALY_172_TIMER,
+                              nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+        nrf_timer_task_trigger(ANOMALY_172_TIMER, NRF_TIMER_TASK_START);
+    }
+
+    if (nrf_timer_event_check(ANOMALY_172_TIMER,
+                            nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1)) &&
+        nrf_timer_int_enable_check(ANOMALY_172_TIMER,
+                            nrf_timer_compare_int_get(NRF_TIMER_CC_CHANNEL1)))
+    {
+        uint8_t rssi = anomaly_172_rssi_check();
+        if (m_strict_mode)
+        {
+            if (rssi >= BLOCKER_FIX_RSSI_THRESHOLD)
+            {
+                set_strict_mode(0);
+            }
+        }
+        else
+        {
+            if (rssi < BLOCKER_FIX_RSSI_THRESHOLD)
+            {
+                set_strict_mode(1);
+            }
+        }
+
+        anomaly_172_radio_operation();
+
+        // Disable interrupt from the one-shot timer.
+        nrf_timer_int_disable(ANOMALY_172_TIMER,
+                              NRF_TIMER_INT_COMPARE1_MASK);
+        // Disable this event.
+        nrf_timer_event_clear(ANOMALY_172_TIMER,
+                              nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL1));
+        nrf_timer_cc_write(ANOMALY_172_TIMER, NRF_TIMER_CC_CHANNEL1, 0);
+    }
+
+    NVIC_ClearPendingIRQ(ANOMALY_172_TIMER_IRQn);
+}
 
 /// @}
 #endif // NRF_MODULE_ENABLED(BLE_DTM)

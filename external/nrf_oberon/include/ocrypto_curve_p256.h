@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -55,13 +55,29 @@
 extern "C" {
 #endif
 
-// (x,y) only jacobian coordinates
 /**@cond */
+
+// (x,y) only jacobian coordinates
 typedef struct {
     ocrypto_mod_p256 x;
     ocrypto_mod_p256 y;
 } ocrypto_cp_p256;
+
+// P-256 invert context
+typedef struct {
+    ocrypto_mod_p256 x, x3, xn, t;
+    int step;
+} ocrypto_p256_invert_context;
+
+
+typedef struct {
+    ocrypto_cp_p256 p, q0, q1;
+    uint32_t e[8]; // bits 0-255 of extended scalar, bit 256 = ~bit 255
+    ocrypto_p256_invert_context inv;
+    int ret, prev, dec, step;
+} ocrypto_p256_mult_context;
 /**@endcond */
+
 
 /** Load r.x from bytes, keep r.y.
  *

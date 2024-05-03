@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010 - 2020, Nordic Semiconductor ASA
+Copyright (c) 2010 - 2021, Nordic Semiconductor ASA
 
 All rights reserved.
 
@@ -44,8 +44,40 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* MDK version */
 #define MDK_MAJOR_VERSION   8 
-#define MDK_MINOR_VERSION   35 
-#define MDK_MICRO_VERSION   0 
+#define MDK_MINOR_VERSION   40 
+#define MDK_MICRO_VERSION   3 
+
+   
+/* Define coprocessor domains */
+#if defined (NRF5340_XXAA_APPLICATION) || defined (NRF5340_XXAA_NETWORK)
+    #ifndef NRF5340_XXAA
+        #define NRF5340_XXAA
+    #endif
+#endif
+#if defined (NRF5340_XXAA_APPLICATION)
+    #ifndef NRF_APPLICATION
+        #define NRF_APPLICATION
+    #endif
+#endif
+#if defined (NRF5340_XXAA_NETWORK)
+    #ifndef NRF_NETWORK
+        #define NRF_NETWORK
+    #endif
+#endif
+
+/* Apply compatibility macros for old nRF5340 macros */
+#if defined(NRF5340_XXAA)
+    #if defined (NRF_APPLICATION)
+        #ifndef NRF5340_XXAA_APPLICATION
+            #define NRF5340_XXAA_APPLICATION
+        #endif
+    #endif
+    #if defined (NRF_NETWORK)
+        #ifndef NRF5340_XXAA_NETWORK
+            #define NRF5340_XXAA_NETWORK
+        #endif
+    #endif
+#endif
 
 /* Define NRF51_SERIES for common use in nRF51 series devices. Only if not previously defined. */
 #if defined (NRF51) ||\
@@ -81,7 +113,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /* Define NRF53_SERIES for common use in nRF53 series devices. */
-#if defined (NRF5340_XXAA_APPLICATION) || defined (NRF5340_XXAA_NETWORK)
+#if defined (NRF5340_XXAA)
     #ifndef NRF53_SERIES
         #define NRF53_SERIES
     #endif
@@ -91,37 +123,6 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined (NRF9160_XXAA)
     #ifndef NRF91_SERIES    
         #define NRF91_SERIES
-    #endif
-#endif
-   
-/* Define coprocessor domains */
-#if defined (NRF5340_XXAA_APPLICATION) || defined (NRF5340_XXAA_NETWORK)
-    #ifndef NRF5340_XXAA
-        #define NRF5340_XXAA
-    #endif
-#endif
-#if defined (NRF5340_XXAA_APPLICATION)
-    #ifndef NRF_APPLICATION
-        #define NRF_APPLICATION
-    #endif
-#endif
-#if defined (NRF5340_XXAA_NETWORK)
-    #ifndef NRF_NETWORK
-        #define NRF_NETWORK
-    #endif
-#endif
-
-/* Apply compatibility macros for old nRF5340 macros */
-#if defined(NRF5340_XXAA)
-    #if defined (NRF_APPLICATION)
-        #ifndef NRF5340_XXAA_APPLICATION
-            #define NRF5340_XXAA_APPLICATION
-        #endif
-    #endif
-    #if defined (NRF_NETWORK)
-        #ifndef NRF5340_XXAA_NETWORK
-            #define NRF5340_XXAA_NETWORK
-        #endif
     #endif
 #endif
 
@@ -175,9 +176,11 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #if defined(NRF_APPLICATION)
         #include "nrf5340_application.h"
         #include "nrf5340_application_bitfields.h"
+        #include "nrf5340_application_name_change.h"
     #elif defined (NRF_NETWORK)
         #include "nrf5340_network.h"
         #include "nrf5340_network_bitfields.h"
+        #include "nrf5340_network_name_change.h"
     #endif
 
 #elif defined (NRF9160_XXAA)

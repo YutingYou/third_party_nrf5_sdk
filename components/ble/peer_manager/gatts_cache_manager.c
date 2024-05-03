@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -228,7 +228,44 @@ ret_code_t gscm_local_db_cache_update(uint16_t conn_handle)
 
                 if (err_code == NRF_SUCCESS)
                 {
-                    err_code = pdb_write_buf_store(peer_id, PM_PEER_DATA_ID_GATT_LOCAL, peer_id);
+                    pm_peer_data_flash_t curr_peer_data;
+
+                    err_code = pdb_peer_data_ptr_get(peer_id,
+                                                PM_PEER_DATA_ID_GATT_LOCAL,
+                                                &curr_peer_data);
+
+                    if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_NOT_FOUND))
+                    {
+                        NRF_LOG_ERROR("pdb_peer_data_ptr_get() returned %s for conn_handle: %d",
+                                        nrf_strerror_get(err_code),
+                                        conn_handle);
+                        return NRF_ERROR_INTERNAL;
+                    }
+
+                    if((err_code == NRF_ERROR_NOT_FOUND)
+                        || (p_local_gatt_db->len != curr_peer_data.p_local_gatt_db->len)
+                        || (memcmp(p_local_gatt_db->data, curr_peer_data.p_local_gatt_db->data,
+                                    p_local_gatt_db->len) != 0))
+                    {
+                        err_code = pdb_write_buf_store(peer_id, PM_PEER_DATA_ID_GATT_LOCAL, peer_id);
+                    }
+                    else
+                    {
+                        NRF_LOG_DEBUG("Local db is already up to date, skipping write.");
+                        ret_code_t err_code_release = pdb_write_buf_release(peer_id, PM_PEER_DATA_ID_GATT_LOCAL);
+                        if (err_code_release == NRF_SUCCESS)
+                        {
+                            err_code = NRF_ERROR_INVALID_DATA;
+                        }
+                        else
+                        {
+                            NRF_LOG_ERROR("Did another thread manipulate PM_PEER_DATA_ID_GATT_LOCAL for "\
+                                          "peer_id %d at the same time? pdb_write_buf_release() returned %s.",
+                                          peer_id,
+                                          nrf_strerror_get(err_code_release));
+                            err_code = NRF_ERROR_INTERNAL;
+                        }
+                    }
                 }
                 else
                 {

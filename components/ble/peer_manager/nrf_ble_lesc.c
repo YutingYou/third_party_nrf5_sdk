@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -51,9 +51,11 @@ NRF_LOG_MODULE_REGISTER();
 /**@brief Descriptor of the peer public key. */
 typedef struct
 {
-    nrf_crypto_ecc_public_key_t value;        /**< Peer public key. */
-    bool                        is_requested; /**< Flag indicating that the public key has been requested to compute DH key. */
-    bool                        is_valid;     /**< Flag indicating that the public key is valid. */
+    nrf_crypto_ecc_public_key_t value;             /**< Peer public key. */
+    bool                        is_requested;      /**< Flag indicating that the public key has been requested to compute DH key. */
+    bool                        is_valid;          /**< Flag indicating that the public key is valid. */
+    bool                        passkey_requested; /**< Flag indicating that the passkey key has been requested. */
+    bool                        passkey_displayed; /**< Flag indicating that the passkey display event has been received. */
 } nrf_ble_lesc_peer_pub_key_t;
 
 /**@brief   The maximum number of peripheral and central connections combined.
@@ -316,9 +318,12 @@ ret_code_t nrf_ble_lesc_request_handler(void)
     {
         if (m_peer_keys[i].is_requested)
         {
-            err_code                    = compute_and_give_dhkey(&m_peer_keys[i], i);
-            m_peer_keys[i].is_requested = false;
-            m_peer_keys[i].is_valid     = false;
+            err_code                         = compute_and_give_dhkey(&m_peer_keys[i], i);
+            m_peer_keys[i].is_requested      = false;
+            m_peer_keys[i].is_valid          = false;
+            m_peer_keys[i].passkey_requested = false;
+            m_peer_keys[i].passkey_displayed = false;
+
             VERIFY_SUCCESS(err_code);
 
         }
@@ -345,34 +350,74 @@ static ret_code_t on_dhkey_request(uint16_t                                 conn
     uint8_t  * p_public_raw;
     size_t     public_raw_len;
 
-    // Convert the received public key from big-endian to little endian.
     p_public_raw   = p_dhkey_request->p_pk_peer->pk;
     public_raw_len = BLE_GAP_LESC_P256_PK_LEN;
-    err_code       = nrf_crypto_ecc_byte_order_invert(&g_nrf_crypto_ecc_secp256r1_curve_info,
-                                                      p_public_raw,
-                                                      public_raw,
-                                                      public_raw_len);
-    if (err_code != NRF_SUCCESS)
+
+    // Don't allow to pair with remote peer which uses the same public key.
+    // Compare only X cordinate of the public key, bytes from 0 to 31.
+    if (memcmp(m_lesc_public_key.pk, p_public_raw, BLE_GAP_LESC_P256_PK_LEN / 2) == 0)
     {
-        NRF_LOG_ERROR("nrf_crypto_ecc_byte_order_invert() returned error 0x%x.", err_code);
-        return err_code;
+        NRF_LOG_WARNING("Remote peer is using identical public key.");
+        m_peer_keys[conn_handle].is_valid = false;
+
+        // In case when we have gotten passkey requested then we will respond to it with the
+        // "NONE" key type to prevent us from going through Authentication Stage 1.
+        if (m_peer_keys[conn_handle].passkey_requested)
+        {
+            m_peer_keys[conn_handle].passkey_requested = false;
+
+            err_code = sd_ble_gap_auth_key_reply(conn_handle, BLE_GAP_AUTH_KEY_TYPE_NONE, NULL);
+
+            return err_code;
+
+        }
+        // In case we have gotten passkey display event then we need to disconnect a link
+        // to prevent us from going through Authentication Stage 1.
+        else if (m_peer_keys[conn_handle].passkey_displayed)
+        {
+            m_peer_keys[conn_handle].passkey_displayed = false;
+
+            err_code = sd_ble_gap_disconnect(conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+            if (err_code != NRF_SUCCESS && err_code != NRF_ERROR_INVALID_STATE)
+            {
+                return err_code;
+            }
+
+            return NRF_SUCCESS;
+        }
+        else
+        {
+            // Do nothing
+        }
+    } else {
+        // Convert the received public key from little endian to big-endian.
+        err_code = nrf_crypto_ecc_byte_order_invert(&g_nrf_crypto_ecc_secp256r1_curve_info,
+                                                    p_public_raw,
+                                                    public_raw,
+                                                    public_raw_len);
+        if (err_code != NRF_SUCCESS)
+        {
+            NRF_LOG_ERROR("nrf_crypto_ecc_byte_order_invert() returned error 0x%x.", err_code);
+            return err_code;
+        }
+
+        // Copy peer public key to the allocated context. The dhkey calculation will be performed in
+        // @ref nrf_ble_lesc_request_handler, so it does not block normal operation.
+        err_code = nrf_crypto_ecc_public_key_from_raw(&g_nrf_crypto_ecc_secp256r1_curve_info,
+                                                   &m_peer_keys[conn_handle].value,
+                                                   public_raw,
+                                                   public_raw_len);
+        if (err_code != NRF_SUCCESS)
+        {
+            NRF_LOG_ERROR("nrf_crypto_ecc_public_key_from_raw() returned error 0x%x.", err_code);
+            m_peer_keys[conn_handle].is_valid = false;
+        }
+        else
+        {
+            m_peer_keys[conn_handle].is_valid = true;
+        }
     }
 
-    // Copy peer public key to the allocated context. The dhkey calculation will be performed in
-    // @ref nrf_ble_lesc_request_handler, so it does not block normal operation.
-    err_code = nrf_crypto_ecc_public_key_from_raw(&g_nrf_crypto_ecc_secp256r1_curve_info,
-                                                  &m_peer_keys[conn_handle].value,
-                                                  public_raw,
-                                                  public_raw_len);
-    if (err_code != NRF_SUCCESS)
-    {
-        NRF_LOG_ERROR("nrf_crypto_ecc_public_key_from_raw() returned error 0x%x.", err_code);
-        m_peer_keys[conn_handle].is_valid = false;
-    }
-    else
-    {
-        m_peer_keys[conn_handle].is_valid = true;
-    }
     m_peer_keys[conn_handle].is_requested = true;
 
     return NRF_SUCCESS;
@@ -411,8 +456,25 @@ void nrf_ble_lesc_on_ble_evt(ble_evt_t const * p_ble_evt)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_DISCONNECTED:
-            m_peer_keys[conn_handle].is_valid     = false;
-            m_peer_keys[conn_handle].is_requested = false;
+            m_peer_keys[conn_handle].is_valid          = false;
+            m_peer_keys[conn_handle].is_requested      = false;
+            m_peer_keys[conn_handle].passkey_requested = false;
+            m_peer_keys[conn_handle].passkey_displayed = false;
+
+            break;
+        
+        case BLE_GAP_EVT_AUTH_KEY_REQUEST:
+            if (p_ble_evt->evt.gap_evt.params.auth_key_request.key_type ==
+                BLE_GAP_AUTH_KEY_TYPE_PASSKEY)
+            {
+                m_peer_keys[conn_handle].passkey_requested = true;
+            }
+
+            break;
+        
+        case BLE_GAP_EVT_PASSKEY_DISPLAY:
+            m_peer_keys[conn_handle].passkey_displayed = true;
+
             break;
 
         case BLE_GAP_EVT_LESC_DHKEY_REQUEST:
@@ -435,6 +497,18 @@ void nrf_ble_lesc_on_ble_evt(ble_evt_t const * p_ble_evt)
                 m_ble_lesc_internal_error = true;
             }
             break;
+
+#if NRF_BLE_LESC_GENERATE_NEW_KEYS
+        case BLE_GAP_EVT_AUTH_STATUS:
+            // Generate new pairing keys.
+             err_code = nrf_ble_lesc_keypair_generate();
+             if (err_code != NRF_SUCCESS)
+             {
+                m_ble_lesc_internal_error = true;
+             }
+
+             break;
+#endif // NRF_BLE_LESC_GENERATE_NEW_KEYS
 
         default:
             break;

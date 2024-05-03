@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -118,12 +118,19 @@
 
 // </e>
 
-// <q> NRF_BLE_GATT_ENABLED  - nrf_ble_gatt - GATT module
- 
-
+// <e> NRF_BLE_GATT_ENABLED - nrf_ble_gatt - GATT module
+//==========================================================
 #ifndef NRF_BLE_GATT_ENABLED
 #define NRF_BLE_GATT_ENABLED 1
 #endif
+// <q> NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED  - Enable GATT MTU exchange initiation
+ 
+
+#ifndef NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED
+#define NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED 1
+#endif
+
+// </e>
 
 // <e> NRF_BLE_GQ_ENABLED - nrf_ble_gq - BLE GATT Queue Module
 //==========================================================
@@ -151,13 +158,6 @@
 #endif
 
 // </e>
-
-// <q> NRF_BLE_LESC_ENABLED  - nrf_ble_lesc - Le Secure Connection
- 
-
-#ifndef NRF_BLE_LESC_ENABLED
-#define NRF_BLE_LESC_ENABLED 1
-#endif
 
 // <e> NRF_BLE_QWR_ENABLED - nrf_ble_qwr - Queued writes support module (prepare/execute write)
 //==========================================================
@@ -363,6 +363,26 @@
 #endif
 
 // </e>
+
+// <h> nrf_ble_lesc - Le Secure Connection
+
+//==========================================================
+// <q> NRF_BLE_LESC_ENABLED  - Enable LESC Module
+ 
+
+#ifndef NRF_BLE_LESC_ENABLED
+#define NRF_BLE_LESC_ENABLED 1
+#endif
+
+// <q> NRF_BLE_LESC_GENERATE_NEW_KEYS  - Generate new LESC keys after every pairing attempt. Keys are generated on the auth status event
+ 
+
+#ifndef NRF_BLE_LESC_GENERATE_NEW_KEYS
+#define NRF_BLE_LESC_GENERATE_NEW_KEYS 1
+#endif
+
+// </h> 
+//==========================================================
 
 // </h> 
 //==========================================================

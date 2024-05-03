@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -45,6 +45,7 @@
 #include "app_usbd.h"
 #include "app_usbd_msc.h"
 #include "app_usbd_string_desc.h"
+#include "nrf_delay.h"
 
 /**
  * @defgroup app_usbd_msc_internal USBD MSC internals
@@ -1498,7 +1499,7 @@ static ret_code_t cmd_preventremoval(app_usbd_class_inst_t const * p_inst,
                                      app_usbd_msc_ctx_t          * p_msc_ctx)
 {
     NRF_LOG_DEBUG("CMD: PREVENTMEDIAREMOVAL");
-    return csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_PASS);
+    return csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_FAIL);
 }
 
 
@@ -2226,12 +2227,17 @@ static ret_code_t msc_event_handler(app_usbd_class_inst_t const  * p_inst,
             {
                 nrf_block_dev_t const * p_blk_dev = p_msc->specific.inst.pp_block_devs[i];
                 ret = nrf_blk_dev_uninit(p_blk_dev);
-                if (ret != NRF_SUCCESS)
+                uint32_t timeout_ms = 250;
+                while (ret == NRF_ERROR_BUSY && timeout_ms--)
                 {
-                    continue;
+                    nrf_delay_ms(1);
+                    ret = nrf_blk_dev_uninit(p_blk_dev);
                 }
 
-                p_msc_ctx->blk_dev_init_mask &= ~(1u << i);
+                if (ret == NRF_SUCCESS)
+                {
+                    p_msc_ctx->blk_dev_init_mask &= ~(1u << i);
+                }
             }
 
             break;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -86,6 +86,7 @@ static const char * m_sec_procedure_str[] =
 static const char * m_event_str[] =
 {
     PM_EVT_STR(PM_EVT_BONDED_PEER_CONNECTED),
+    PM_EVT_STR(PM_EVT_CONN_CONFIG_REQ),
     PM_EVT_STR(PM_EVT_CONN_SEC_START),
     PM_EVT_STR(PM_EVT_CONN_SEC_SUCCEEDED),
     PM_EVT_STR(PM_EVT_CONN_SEC_FAILED),
@@ -494,6 +495,10 @@ void pm_handler_pm_evt_log(pm_evt_t const * p_pm_evt)
                           m_roles_str[ble_conn_state_role(p_pm_evt->conn_handle)],
                           p_pm_evt->conn_handle,
                           p_pm_evt->peer_id);
+            break;
+
+        case PM_EVT_CONN_CONFIG_REQ:
+            NRF_LOG_DEBUG("Connection configuration request");
             break;
 
         case PM_EVT_CONN_SEC_START:

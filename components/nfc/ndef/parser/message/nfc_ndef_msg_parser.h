@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -78,6 +78,9 @@ extern "C" {
  * @brief   Function for parsing NFC NDEF messages.
  *
  * This function parses NDEF messages using NDEF binary record descriptors.
+ * 
+ * @note @p p_nfc_data must not contain the NLEN field (NDEF length) which indicates the size of the
+ *       NDEF Message stored in the NDEF File, in bytes. The NLEN field is two bytes length.
  *
  * @param[out] p_result_buf        Pointer to the buffer that will be used to hold
  *                                 the NDEF message descriptor. After parsing is completed successfully, the first address

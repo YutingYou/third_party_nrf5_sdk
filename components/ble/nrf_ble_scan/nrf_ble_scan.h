@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -480,10 +480,12 @@ void nrf_ble_scan_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_scan);
  *          (for example, on a phone screen from left to right), you must use this function to
  *          convert the address to the SoftDevice address type.
  *
- * @param[in]  addr       Address to be converted to the SoftDevice address.
- * @param[out] p_gap_addr The Bluetooth Low Energy address.
+ * @note This function does not decode an address type.
  *
- * @retval BLE_ERROR_GAP_INVALID_BLE_ADDR If the BLE address type is invalid.
+ * @param[out] p_gap_addr The Bluetooth Low Energy address.
+ * @param[in]  addr       Address to be converted to the SoftDevice address.
+ *
+ * @retval NRF_ERROR_NULL                 If a NULL pointer is passed as input.
  * @retval NRF_SUCCESS                    If the address is copied and converted successfully.
  */
 ret_code_t nrf_ble_scan_copy_addr_to_sd_gap_addr(ble_gap_addr_t * p_gap_addr,

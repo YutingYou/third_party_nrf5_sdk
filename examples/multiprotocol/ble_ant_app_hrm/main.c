@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2013 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -114,10 +114,10 @@
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                            /**< Whether or not to include the service_changed characteristic. If not enabled, the server's database cannot be changed for the lifetime of the device */
 
-#define SECOND_1_25_MS_UNITS            800                                          /**< Definition of 1 second, when 1 unit is 1.25 ms. */
+#define CONN_INTERVAL_BASE              80                                           /**< Definition of 100 ms, when 1 unit is 1.25 ms. */
 #define SECOND_10_MS_UNITS              100                                          /**< Definition of 1 second, when 1 unit is 10 ms. */
-#define MIN_CONN_INTERVAL               (SECOND_1_25_MS_UNITS / 2)                   /**< Minimum acceptable connection interval (0.5 seconds), Connection interval uses 1.25 ms units. */
-#define MAX_CONN_INTERVAL               (SECOND_1_25_MS_UNITS)                       /**< Maximum acceptable connection interval (1 second), Connection interval uses 1.25 ms units. */
+#define MIN_CONN_INTERVAL               (CONN_INTERVAL_BASE / 2)                     /**< Minimum acceptable connection interval (50 ms), Connection interval uses 1.25 ms units. */
+#define MAX_CONN_INTERVAL               (CONN_INTERVAL_BASE)                         /**< Maximum acceptable connection interval (100 ms), Connection interval uses 1.25 ms units. */
 #define SLAVE_LATENCY                   0                                            /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                (4 * SECOND_10_MS_UNITS)                     /**< Connection supervisory timeout (4 seconds), Supervision Timeout uses 10 ms units. */
 
@@ -609,6 +609,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 static void pm_evt_handler(pm_evt_t const * p_evt)
 {
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)

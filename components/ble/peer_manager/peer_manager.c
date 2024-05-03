@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -83,6 +83,7 @@ static pm_peer_id_t                  m_highest_ranked_peer;             /**< The
 static pm_evt_handler_t              m_evt_handlers[PM_MAX_REGISTRANTS];/**< The subscribers to Peer Manager events, as registered through @ref pm_register. */
 static uint8_t                       m_n_registrants;                   /**< The number of event handlers registered through @ref pm_register. */
 
+static ble_conn_state_user_flag_id_t m_flag_conn_excluded = BLE_CONN_STATE_USER_FLAG_INVALID;  /**< User flag indicating whether a connection is excluded from being handled by the Peer Manager. */
 
 /**@brief Function for sending a Peer Manager event to all subscribers.
  *
@@ -295,6 +296,41 @@ void pm_im_evt_handler(pm_evt_t * p_im_evt)
     evt_send(p_im_evt);
 }
 
+
+
+static bool is_conn_handle_excluded(ble_evt_t const * p_ble_evt)
+{
+    uint16_t conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+
+    switch (p_ble_evt->header.evt_id)
+    {
+        case BLE_GAP_EVT_CONNECTED:
+        {
+                pm_evt_t pm_conn_config_req_evt;
+                bool is_excluded = false;
+
+                memset(&pm_conn_config_req_evt, 0, sizeof(pm_evt_t));
+                pm_conn_config_req_evt.evt_id      = PM_EVT_CONN_CONFIG_REQ;
+                pm_conn_config_req_evt.peer_id     = PM_PEER_ID_INVALID;
+                pm_conn_config_req_evt.conn_handle = conn_handle;
+
+                pm_conn_config_req_evt.params.conn_config_req.p_peer_params =
+                    &p_ble_evt->evt.gap_evt.params.connected;
+                pm_conn_config_req_evt.params.conn_config_req.p_context = &is_excluded;
+
+                evt_send(&pm_conn_config_req_evt);
+                ble_conn_state_user_flag_set(conn_handle,
+                                             m_flag_conn_excluded,
+                                             is_excluded);
+
+                return is_excluded;
+        }
+
+        default:
+            return ble_conn_state_user_flag_get(conn_handle, m_flag_conn_excluded);
+    }
+}
+
 /**
  * @brief Function for handling BLE events.
  *
@@ -304,6 +340,13 @@ void pm_im_evt_handler(pm_evt_t * p_im_evt)
 static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
     VERIFY_MODULE_INITIALIZED_VOID();
+
+    if (is_conn_handle_excluded(p_ble_evt))
+    {
+        NRF_LOG_DEBUG("Filtering BLE event with ID: 0x%04X targeting 0x%04X connection handle",
+                      p_ble_evt->header.evt_id, p_ble_evt->evt.gap_evt.conn_handle);
+        return;
+    }
 
     im_ble_evt_handler(p_ble_evt);
     sm_ble_evt_handler(p_ble_evt);
@@ -373,6 +416,8 @@ ret_code_t pm_init(void)
     m_peer_rank_initialized = false;
     m_module_initialized    = true;
 
+    m_flag_conn_excluded = ble_conn_state_user_flag_acquire();
+
     // If PM_PEER_RANKS_ENABLED is 0, these variables are unused.
     UNUSED_VARIABLE(m_peer_rank_initialized);
     UNUSED_VARIABLE(m_peer_rank_token);
@@ -427,6 +472,18 @@ ret_code_t pm_conn_secure(uint16_t conn_handle, bool force_repairing)
     }
 
     return err_code;
+}
+
+
+ret_code_t pm_conn_exclude(uint16_t conn_handle, void const * p_context)
+{
+    VERIFY_PARAM_NOT_NULL(p_context);
+
+    bool * p_is_conn_excluded = (bool *) p_context;
+
+    *p_is_conn_excluded = true;
+
+    return NRF_SUCCESS;
 }
 
 

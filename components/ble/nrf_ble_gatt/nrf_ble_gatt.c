@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -121,7 +121,6 @@ static ret_code_t data_length_update(uint16_t conn_handle, uint16_t data_length)
  */
 static void on_connected_evt(nrf_ble_gatt_t * p_gatt, ble_evt_t const * p_ble_evt)
 {
-    ret_code_t            err_code;
     uint16_t              conn_handle = p_ble_evt->evt.common_evt.conn_handle;
     nrf_ble_gatt_link_t * p_link      = &p_gatt->links[conn_handle];
 
@@ -149,9 +148,12 @@ static void on_connected_evt(nrf_ble_gatt_t * p_gatt, ble_evt_t const * p_ble_ev
             break;
     }
 
+#if NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED
     // Begin an ATT MTU exchange if necessary.
     if (p_link->att_mtu_desired > p_link->att_mtu_effective)
     {
+        ret_code_t err_code;
+
         NRF_LOG_DEBUG("Requesting to update ATT MTU to %u bytes on connection 0x%x.",
                       p_link->att_mtu_desired, conn_handle);
 
@@ -173,6 +175,7 @@ static void on_connected_evt(nrf_ble_gatt_t * p_gatt, ble_evt_t const * p_ble_ev
                           nrf_strerror_get(err_code));
         }
     }
+#endif // NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED
 
 #if !defined (S112) && !defined(S312) && !defined (S122)
     // Send a data length update request if necessary.

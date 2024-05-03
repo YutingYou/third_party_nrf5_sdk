@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -58,9 +58,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * Length of SHA-512 hash.
@@ -153,3 +155,4 @@ void ocrypto_sha512(
 #endif /* #ifndef OCRYPTO_SHA512_H */
 
 /** @} */
+

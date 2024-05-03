@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2012 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -59,14 +59,15 @@ extern "C" {
 #define DTM_MAX_ANTENNA_CNT 0x13 /**< Maximum supported antenna count. */
 
 /**@brief Configuration parameters. */
-#define DTM_BITRATE                     UARTE_BAUDRATE_BAUDRATE_Baud19200   /**< Serial bitrate on the UART */
-#define DEFAULT_TX_POWER                RADIO_TXPOWER_TXPOWER_0dBm          /**< Default Transmission power using in the DTM module. */
-#define DEFAULT_TIMER                   NRF_TIMER0                          /**< Default timer used for timing. */
-#define DEFAULT_TIMER_IRQn              TIMER0_IRQn                         /**< IRQ used for timer. NOTE: MUST correspond to DEFAULT_TIMER. */
+#define DTM_BITRATE          UARTE_BAUDRATE_BAUDRATE_Baud19200                    /**< Serial bitrate on the UART */
+#define DEFAULT_TX_POWER     RADIO_TXPOWER_TXPOWER_0dBm                           /**< Default Transmission power using in the DTM module. */
+#define DTM_TIMER            CONCAT_2(NRF_TIMER, NRF_DTM_TIMER_INSTANCE)          /**< Default timer used for timing. */
+#define DTM_TIMER_IRQn       CONCAT_3(TIMER, NRF_DTM_TIMER_INSTANCE, _IRQn )      /**< IRQ used for timer. NOTE: MUST correspond to DTM_TIMER. */
+#define DTM_TIMER_IRQHandler CONCAT_3(TIMER, NRF_DTM_TIMER_INSTANCE, _IRQHandler) /**< IRQHandler used for DTM. It is used for sending PDU with valid interval and UART polling interval. */
 
-#define ANOMALY_172_TIMER                NRF_TIMER1                          /**< Timer used for the workaround for errata 172 on affected nRF5 devices. */
-#define ANOMALY_172_TIMER_IRQn           TIMER1_IRQn                         /**< IRQ used for timer. NOTE: MUST correspond to ERRATA_172_TIMER. */
-#define ANOMALY_172_TIMER_IRQHandler     TIMER1_IRQHandler                   /**< IRQHandler used for timer. NOTE: MUST correspond to ERRATA_172_TIMER. */
+#define ANOMALY_172_TIMER            NRF_TIMER1                          /**< Timer used for the workaround for errata 172 on affected nRF5 devices. */
+#define ANOMALY_172_TIMER_IRQn       TIMER1_IRQn                         /**< IRQ used for timer. NOTE: MUST correspond to ERRATA_172_TIMER. */
+#define ANOMALY_172_TIMER_IRQHandler TIMER1_IRQHandler                   /**< IRQHandler used for timer. NOTE: MUST correspond to ERRATA_172_TIMER. */
     
 /**@brief BLE DTM command codes. */
 typedef uint32_t dtm_cmd_t;                                                 /**< DTM command type. */
@@ -91,8 +92,8 @@ typedef uint32_t dtm_cmd_t;                                                 /**<
 #define LE_RESET_MIN_RANGE 0x00                                             /**< DTM command parameter: Reset. Minimum parameter value. */
 #define LE_RESET_MAX_RANGE 0x03                                             /**< DTM command parameter: Reset. Maximum parameter value. */
 
-#define LE_SET_UPER_BITS_MIN_RANGE 0x00                                     /**< DTM command parameter: Set upper bits. Minimum parameter value. */
-#define LE_SET_UPER_BITS_MAX_RANGE 0x0F                                     /**< DTM command parameter: Set upper bits. Maximum parameter value. */
+#define LE_SET_UPPER_BITS_MIN_RANGE 0x00                                     /**< DTM command parameter: Set upper bits. Minimum parameter value. */
+#define LE_SET_UPPER_BITS_MAX_RANGE 0x0F                                     /**< DTM command parameter: Set upper bits. Maximum parameter value. */
 
 #define LE_PHY_1M_MIN_RANGE          0x04                                   /**< DTM command parameter: Set PHY for future packets to use 1MBit PHY. Minimum parameter value. */
 #define LE_PHY_1M_MAX_RANGE          0x07                                   /**< DTM command parameter: Set PHY for future packets to use 1MBit PHY. Maximum parameter value. */
@@ -159,7 +160,6 @@ typedef uint32_t dtm_cmd_t;                                                 /**<
 #define CARRIER_TEST                    0                                   /**< Length=0 indicates a constant, unmodulated carrier until LE_TEST_END or LE_RESET */
 #define CARRIER_TEST_STUDIO             1                                   /**< nRFgo Studio uses value 1 in length field, to indicate a constant, unmodulated carrier until LE_TEST_END or LE_RESET */
 #define SET_TX_POWER                    2                                   /**< Set transmission power, value -40..+4 dBm in steps of 4 */
-#define SELECT_TIMER                    3                                   /**< Select on of the 16 MHz timers 0, 1 or 2 */
 #define SET_NRF21540_TX_POWER           4                                   /**< Set nRF21540 transmission power level. Choose between two predefinied option +20 dBm or +10 dBm. */
 
 #define LE_PACKET_REPORTING_EVENT       0x8000                              /**< DTM Packet reporting event, returned by the device to the tester. */
@@ -263,12 +263,10 @@ typedef enum
 */
 uint32_t dtm_init(void);
 
-
-/**@brief Function for giving control to dtmlib for handling timer and radio events.
- *        Will return to caller at 625us intervals or whenever another event than radio occurs
- *        (such as UART input). Function will put MCU to sleep between events.
+/**@brief Function for waiting the UART poll time. The wait time depends on a current UART baudrate.
+ *        For default baudrate of 19200 will return to caller at 260us.
  *
- * @return      Time counter, incremented every 625 us.
+ * @return      Time counter, incremented every UART poll time.
  */
 uint32_t dtm_wait(void);
 

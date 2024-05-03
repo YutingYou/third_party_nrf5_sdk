@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -521,6 +521,8 @@ uint16_t nrf_ble_bms_on_qwr_evt(nrf_ble_bms_t     * p_bms,
     VERIFY_TRUE(p_evt->attr_handle == p_bms->ctrlpt_handles.value_handle,
             (NRF_BLE_QWR_REJ_REQUEST_ERR_CODE));
 
+    p_bms->conn_handle = p_qwr->conn_handle;
+
     if (p_evt->evt_type == NRF_BLE_QWR_EVT_AUTH_REQUEST)
     {
         return on_qwr_auth_req(p_bms, p_qwr, p_evt);
@@ -545,6 +547,7 @@ void nrf_ble_bms_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GATTS_EVT_RW_AUTHORIZE_REQUEST:
+            p_bms->conn_handle = p_ble_evt->evt.gatts_evt.conn_handle;
             on_rw_auth_req(p_bms, &p_ble_evt->evt.gatts_evt);
             break;
 
@@ -591,9 +594,23 @@ ret_code_t nrf_ble_bms_init(nrf_ble_bms_t * p_bms, nrf_ble_bms_init_t * p_bms_in
     err_code = ctrlpt_char_add(p_bms, p_bms_init);
     VERIFY_SUCCESS(err_code);
 
-    if (p_bms_init->p_qwr != NULL)
+    // Allow this for backward compatibility
+    if ((p_bms_init->p_qwr != NULL) && (p_bms_init->qwr_count == 0))
     {
-        return nrf_ble_qwr_attr_register(p_bms_init->p_qwr, p_bms->ctrlpt_handles.value_handle);
+        err_code = nrf_ble_qwr_attr_register(p_bms_init->p_qwr, p_bms->ctrlpt_handles.value_handle);
+        VERIFY_SUCCESS(err_code);
+    }
+    else if (p_bms_init->p_qwr && (p_bms_init->qwr_count > 0))
+    {
+        for (uint32_t i = 0; i < p_bms_init->qwr_count; i++)
+        {
+            err_code = nrf_ble_qwr_attr_register(&p_bms_init->p_qwr[i], p_bms->ctrlpt_handles.value_handle);
+            VERIFY_SUCCESS(err_code);
+        }
+    }
+    else
+    {
+        // Do nothing
     }
 
     NRF_LOG_INFO("Init complete.");

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -68,6 +68,9 @@ NRF_LOG_MODULE_REGISTER();
 #define APP_TIMER_SAFE_WINDOW APP_TIMER_TICKS(APP_TIMER_SAFE_WINDOW_MS)
 
 #define APP_TIMER_RTC_MAX_VALUE   (DRV_RTC_MAX_CNT - APP_TIMER_SAFE_WINDOW)
+
+/* Check if timer is idle */
+#define APP_TIMER_IS_IDLE(timer) (timer->end_val == APP_TIMER_IDLE_VAL)
 
 static drv_rtc_t m_rtc_inst = DRV_RTC_INSTANCE(1);
 
@@ -162,14 +165,19 @@ static bool timer_expire(app_timer_t * p_timer)
     ASSERT(p_timer->handler);
     bool ret = false;
 
-    if ((m_global_active == true) && (p_timer != NULL) && (p_timer->active))
+    if ((m_global_active == true) && (p_timer != NULL))
     {
         if (get_now() >= p_timer->end_val) {
+            bool cont;
+
             /* timer expired */
+            CRITICAL_REGION_ENTER();
+            /* In case of single shot, set timer to idle. */
             if (p_timer->repeat_period == 0)
             {
-                p_timer->active = false;
+                p_timer->end_val = APP_TIMER_IDLE_VAL;
             }
+            CRITICAL_REGION_EXIT();
     #if APP_TIMER_CONFIG_USE_SCHEDULER
             app_timer_event_t timer_event;
 
@@ -183,15 +191,26 @@ static bool timer_expire(app_timer_t * p_timer)
             NRF_LOG_DEBUG("Timer expired (context: %d)", (uint32_t)p_timer->p_context)
             p_timer->handler(p_timer->p_context);
     #endif
+            CRITICAL_REGION_ENTER();
             /* check active flag as it may have been stopped in the user handler */
-            if ((p_timer->repeat_period) && (p_timer->active))
+            if (p_timer->repeat_period && !APP_TIMER_IS_IDLE(p_timer))
             {
                 p_timer->end_val += p_timer->repeat_period;
+                cont = true;
+            }
+            else
+            {
+                cont = false;
+            }
+            CRITICAL_REGION_EXIT();
+
+            if (cont)
+            {
                 nrf_sortlist_add(&m_app_timer_sortlist, &p_timer->list_item);
                 ret = true;
             }
         }
-        else
+        else if (!APP_TIMER_IS_IDLE(p_timer))
         {
             nrf_sortlist_add(&m_app_timer_sortlist, &p_timer->list_item);
             ret = true;
@@ -217,11 +236,15 @@ static bool rtc_schedule(app_timer_t * p_timer, bool * p_rerun)
 {
     ret_code_t ret = NRF_ERROR_TIMEOUT;
     *p_rerun = false;
-    int64_t remaining = (int64_t)(p_timer->end_val - get_now());
+    /* In case timer got stopped in between, end_val will be very far in the
+     * future. RTC will be reconfigured on the next iteration.
+     */
+    uint64_t end_val = p_timer->end_val;
+    int64_t remaining = (int64_t)(end_val - get_now());
 
     if (remaining > 0) {
         uint32_t cc_val = ((uint32_t)remaining > APP_TIMER_RTC_MAX_VALUE) ?
-                (app_timer_cnt_get() + APP_TIMER_RTC_MAX_VALUE) : p_timer->end_val;
+                (app_timer_cnt_get() + APP_TIMER_RTC_MAX_VALUE) : end_val;
 
         ret = drv_rtc_windowed_compare_set(&m_rtc_inst, 0, cc_val, APP_TIMER_SAFE_WINDOW);
         NRF_LOG_DEBUG("Setting CC to 0x%08x (err: %d)", cc_val & DRV_RTC_MAX_CNT, ret);
@@ -271,7 +294,7 @@ static void sorted_list_stop_all(void)
         p_next = sortlist_pop();
         if (p_next)
         {
-            p_next->active = false;
+            p_next->end_val = APP_TIMER_IDLE_VAL;
         }
     } while (p_next);
 }
@@ -332,7 +355,19 @@ static void rtc_update(drv_rtc_t const * const  p_instance)
         bool rtc_reconf = false;
         if (p_next) //Candidate for active timer
         {
-            if (mp_active_timer == NULL)
+            /* If timer was stopped just remove it from the sortlist and continue.
+             * Note that it is possible, that stop/start requests are pending in
+             * the request queue if added from higher priority context. In
+             * that case end_val was first set to invalid value and then to the
+             * new timeout in the future. In that case, timer location in sortlist
+             * is invalid. However, it will all be sorted out when stop and start
+             * requests are handled.
+             */
+            if (APP_TIMER_IS_IDLE(p_next)) {
+                (void)sortlist_pop();
+                continue;
+            }
+            else if (mp_active_timer == NULL)
             {
                 //There is no active timer so candidate will become active timer.
                 rtc_reconf = true;
@@ -342,7 +377,7 @@ static void rtc_update(drv_rtc_t const * const  p_instance)
                 //Candidate has shorter timeout than current active timer. Candidate will replace active timer.
                 //Active timer is put back into sorted list.
                 rtc_reconf = true;
-                if (mp_active_timer->active)
+                if (!APP_TIMER_IS_IDLE(mp_active_timer))
                 {
                     NRF_LOG_INST_DEBUG(mp_active_timer->p_log, "Timer preempted.");
                     nrf_sortlist_add(&m_app_timer_sortlist, &mp_active_timer->list_item);
@@ -407,9 +442,18 @@ static void timer_req_process(drv_rtc_t const * const  p_instance)
         switch (p_req->type)
         {
             case TIMER_REQ_START:
-                if (!p_req->p_timer->active)
+                /* Check for idle in most of the cases is not needed but it serves
+                 * for following corner case:
+                 * - timer was active (request processed)
+                 * - timer was stopped and started from higher priority which
+                 *   interrupted handling timeout. End_val is currently set to the
+                 *   timeout value of the next start request. If that value already
+                 *   expired, timeout expires before stop, start requests are handled.
+                 * - When start request is handled, timer is idle and should not be
+                 *   added to the queue but just dropped.
+                 */
+                if (!APP_TIMER_IS_IDLE(p_req->p_timer))
                 {
-                    p_req->p_timer->active = true;
                     nrf_sortlist_add(&m_app_timer_sortlist, &(p_req->p_timer->list_item));
                     NRF_LOG_INST_DEBUG(p_req->p_timer->p_log,"Start request (expiring at %d/0x%08x).",
                                                   p_req->p_timer->end_val, p_req->p_timer->end_val);
@@ -564,6 +608,7 @@ ret_code_t app_timer_create(app_timer_id_t const *      p_timer_id,
     }
 
     app_timer_t * p_t = (app_timer_t *) *p_timer_id;
+    p_t->end_val = APP_TIMER_IDLE_VAL;
     p_t->handler = timeout_handler;
     p_t->repeat_period = (mode == APP_TIMER_MODE_REPEATED) ? 1 : 0;
     return NRF_SUCCESS;
@@ -573,14 +618,32 @@ ret_code_t app_timer_start(app_timer_t * p_timer, uint32_t timeout_ticks, void *
 {
     ASSERT(p_timer);
     app_timer_t * p_t = (app_timer_t *) p_timer;
+    bool cont;
 
-    if (p_t->active)
+    CRITICAL_REGION_ENTER();
+    if (APP_TIMER_IS_IDLE(p_t))
+    {
+        /* TImer is idle and can be started. Note that timer can still be
+         * in use by the engine since stop request may be still pending if
+         * it was scheduled from higher priority interrupt (same as this start).
+         * In that case, end value is shifted to the future which will prevent
+         * previous timeout value to expire.*/
+        p_t->end_val = get_now() + timeout_ticks;
+        cont = true;
+    }
+    else
+    {
+        cont = false;
+    }
+    CRITICAL_REGION_EXIT();
+
+    /* Timer in use */
+    if (!cont)
     {
         return NRF_SUCCESS;
     }
 
     p_t->p_context = p_context;
-    p_t->end_val = get_now() + timeout_ticks;
 
     if (p_t->repeat_period)
     {
@@ -595,7 +658,27 @@ ret_code_t app_timer_stop(app_timer_t * p_timer)
 {
     ASSERT(p_timer);
     app_timer_t * p_t = (app_timer_t *) p_timer;
-    p_t->active = false;
+
+    bool cont;
+
+    CRITICAL_REGION_ENTER();
+    if (APP_TIMER_IS_IDLE(p_t))
+    {
+        /* TImer is idle and can not be stopped. */
+        cont = false;
+    }
+    else
+    {
+        /* Set end value to invalid (unrealistic future) value. */
+        p_t->end_val = APP_TIMER_IDLE_VAL;
+        cont = true;
+    }
+    CRITICAL_REGION_EXIT();
+
+    if (!cont)
+    {
+        return NRF_SUCCESS;
+    }
 
     return timer_req_schedule(TIMER_REQ_STOP, p_t);
 }

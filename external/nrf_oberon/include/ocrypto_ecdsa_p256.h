@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -38,7 +38,7 @@
  *
  */
 /**@file
- * @defgroup nrf_oberon_ecdsa ECDSA APIs
+ * @defgroup nrf_oberon_ecdsa_p256 ECDSA APIs
  * @ingroup nrf_oberon
  * @{
  * @brief Type declarations and APIs to do Elliptic Curve Digital Signature Algorith using the

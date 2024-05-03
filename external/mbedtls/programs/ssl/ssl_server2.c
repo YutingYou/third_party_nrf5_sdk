@@ -1,8 +1,14 @@
 /*
  *  SSL client with options
  *
- *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
- *  SPDX-License-Identifier: Apache-2.0
+ *  Copyright The Mbed TLS Contributors
+ *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
+ *
+ *  This file is provided under the Apache License 2.0, or the
+ *  GNU General Public License v2.0 or later.
+ *
+ *  **********
+ *  Apache License 2.0:
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -16,7 +22,26 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  **********
+ *
+ *  **********
+ *  GNU General Public License v2.0 or later:
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  **********
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -49,7 +74,7 @@ int main( void )
     mbedtls_printf("MBEDTLS_ENTROPY_C and/or "
            "MBEDTLS_SSL_TLS_C and/or MBEDTLS_SSL_SRV_C and/or "
            "MBEDTLS_NET_C and/or MBEDTLS_CTR_DRBG_C and/or not defined.\n");
-    return( 0 );
+    mbedtls_exit( 0 );
 }
 #else
 
@@ -366,7 +391,9 @@ int main( void )
 #define USAGE_CURVES ""
 #endif
 
-#define USAGE \
+/* USAGE is arbitrarily split to stay under the portable string literal
+ * length limit: 4095 bytes in C99. */
+#define USAGE1 \
     "\n usage: ssl_server2 param=<>...\n"                   \
     "\n acceptable parameters:\n"                           \
     "    server_addr=%%s      default: (all interfaces)\n"  \
@@ -387,7 +414,8 @@ int main( void )
     USAGE_COOKIES                                           \
     USAGE_ANTI_REPLAY                                       \
     USAGE_BADMAC_LIMIT                                      \
-    "\n"                                                    \
+    "\n"
+#define USAGE2 \
     "    auth_mode=%%s        default: (library default: none)\n"      \
     "                        options: none, optional, required\n" \
     "    cert_req_ca_list=%%d default: 1 (send ca list)\n"  \
@@ -398,7 +426,8 @@ int main( void )
     "\n"                                                    \
     USAGE_PSK                                               \
     USAGE_ECJPAKE                                           \
-    "\n"                                                    \
+    "\n"
+#define USAGE3 \
     "    allow_legacy=%%d     default: (library default: no)\n"      \
     USAGE_RENEGO                                            \
     "    exchanges=%%d        default: 1\n"                 \
@@ -411,7 +440,8 @@ int main( void )
     USAGE_EMS                                               \
     USAGE_ETM                                               \
     USAGE_CURVES                                            \
-    "\n"                                                    \
+    "\n"
+#define USAGE4 \
     "    arc4=%%d             default: (library default: 0)\n" \
     "    allow_sha1=%%d       default: 0\n"                             \
     "    min_version=%%s      default: (library default: tls1)\n"       \
@@ -1323,7 +1353,10 @@ int main( int argc, char *argv[] )
         if( ret == 0 )
             ret = 1;
 
-        mbedtls_printf( USAGE );
+        mbedtls_printf( USAGE1 );
+        mbedtls_printf( USAGE2 );
+        mbedtls_printf( USAGE3 );
+        mbedtls_printf( USAGE4 );
 
         list = mbedtls_ssl_list_ciphersuites();
         while( *list )
@@ -1773,7 +1806,7 @@ int main( int argc, char *argv[] )
         }
         else if( strcmp( p, "query_config" ) == 0 )
         {
-            return query_config( q );
+            mbedtls_exit( query_config( q ) );
         }
         else
             goto usage;
@@ -3217,7 +3250,7 @@ exit:
     if( ret < 0 )
         ret = 1;
 
-    return( ret );
+    mbedtls_exit( ret );
 }
 #endif /* MBEDTLS_BIGNUM_C && MBEDTLS_ENTROPY_C && MBEDTLS_SSL_TLS_C &&
           MBEDTLS_SSL_SRV_C && MBEDTLS_NET_C && MBEDTLS_RSA_C &&

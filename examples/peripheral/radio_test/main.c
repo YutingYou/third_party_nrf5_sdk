@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2020, Nordic Semiconductor ASA
+ * Copyright (c) 2014-2020 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -170,6 +170,8 @@ int main(void)
 #endif
         UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
         nrf_cli_process(&m_cli_uart);
+
+        __WFE();
     }
 }
 

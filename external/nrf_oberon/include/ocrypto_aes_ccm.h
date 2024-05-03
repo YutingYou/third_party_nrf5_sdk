@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -51,15 +51,18 @@
  * cipher into a stream cipher. The AES block cipher primitive is used in CTR mode for
  * encryption and decryption. In addition an AES CBC-MAC is used for authentication.
  */
+
 #ifndef OCRYPTO_AES_CCM_H
 #define OCRYPTO_AES_CCM_H
 
 #include <stddef.h>
 #include <stdint.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * AES-CCM encryption.
@@ -114,6 +117,7 @@ int ocrypto_aes_ccm_decrypt (
     const uint8_t *nonce, size_t n_len,
     const uint8_t *aa, size_t aa_len);
 
+
 #ifdef __cplusplus
 }
 #endif
@@ -121,3 +125,4 @@ int ocrypto_aes_ccm_decrypt (
 #endif /* #ifndef OCRYPTO_AES_CCM_H */
 
 /** @} */
+

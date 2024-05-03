@@ -1,10 +1,10 @@
 <!DOCTYPE Linker_Placement_File>
 <Root name="Flash Section Placement">
-  <MemorySegment name="FLASH" start="$(FLASH_PH_START)" size="$(FLASH_PH_SIZE)">
+  <MemorySegment name="FLASH1" start="$(FLASH_PH_START)" size="$(FLASH_PH_SIZE)">
     <ProgramSection alignment="0x100" load="Yes" name=".vectors" start="$(FLASH_START)" />
     <ProgramSection alignment="4" load="Yes" name=".init" />
     <ProgramSection alignment="4" load="Yes" name=".init_rodata" />
-    <ProgramSection alignment="4" load="Yes" name=".text" />
+    <ProgramSection alignment="4" load="Yes" name=".text" size="0x4" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".crypto_data" inputsections="*(SORT(.crypto_data*))" address_symbol="__start_crypto_data" end_symbol="__stop_crypto_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_aes_func_data" inputsections="*(SORT(.test_vector_aes_func_data*))" address_symbol="__start_test_vector_aes_func_data" end_symbol="__stop_test_vector_aes_func_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_aes_data" inputsections="*(SORT(.test_vector_aes_data*))" address_symbol="__start_test_vector_aes_data" end_symbol="__stop_test_vector_aes_data" />
@@ -12,12 +12,12 @@
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_aes_monte_carlo_data" inputsections="*(SORT(.test_vector_aes_monte_carlo_data*))" address_symbol="__start_test_vector_aes_monte_carlo_data" end_symbol="__stop_test_vector_aes_monte_carlo_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_aead_data" inputsections="*(SORT(.test_vector_aead_data*))" address_symbol="__start_test_vector_aead_data" end_symbol="__stop_test_vector_aead_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_aead_simple_data" inputsections="*(SORT(.test_vector_aead_simple_data*))" address_symbol="__start_test_vector_aead_simple_data" end_symbol="__stop_test_vector_aead_simple_data" />
-    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdh_data_deterministic_simple" inputsections="*(SORT(.test_vector_ecdh_data_deterministic_simple*))" address_symbol="__start_test_vector_ecdh_data_deterministic_simple" end_symbol="__stop_test_vector_ecdh_data_deterministic_simple" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdh_data_deterministic_full" inputsections="*(SORT(.test_vector_ecdh_data_deterministic_full*))" address_symbol="__start_test_vector_ecdh_data_deterministic_full" end_symbol="__stop_test_vector_ecdh_data_deterministic_full" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdh_data_random" inputsections="*(SORT(.test_vector_ecdh_data_random*))" address_symbol="__start_test_vector_ecdh_data_random" end_symbol="__stop_test_vector_ecdh_data_random" />
-    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdsa_sign_data" inputsections="*(SORT(.test_vector_ecdsa_sign_data*))" address_symbol="__start_test_vector_ecdsa_sign_data" end_symbol="__stop_test_vector_ecdsa_sign_data" />
+    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdh_data_deterministic_simple" inputsections="*(SORT(.test_vector_ecdh_data_deterministic_simple*))" address_symbol="__start_test_vector_ecdh_data_deterministic_simple" end_symbol="__stop_test_vector_ecdh_data_deterministic_simple" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdsa_random_data" inputsections="*(SORT(.test_vector_ecdsa_random_data*))" address_symbol="__start_test_vector_ecdsa_random_data" end_symbol="__stop_test_vector_ecdsa_random_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdsa_verify_data" inputsections="*(SORT(.test_vector_ecdsa_verify_data*))" address_symbol="__start_test_vector_ecdsa_verify_data" end_symbol="__stop_test_vector_ecdsa_verify_data" />
+    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_ecdsa_sign_data" inputsections="*(SORT(.test_vector_ecdsa_sign_data*))" address_symbol="__start_test_vector_ecdsa_sign_data" end_symbol="__stop_test_vector_ecdsa_sign_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_eddsa_verify_data" inputsections="*(SORT(.test_vector_eddsa_verify_data*))" address_symbol="__start_test_vector_eddsa_verify_data" end_symbol="__stop_test_vector_eddsa_verify_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_eddsa_sign_data" inputsections="*(SORT(.test_vector_eddsa_sign_data*))" address_symbol="__start_test_vector_eddsa_sign_data" end_symbol="__stop_test_vector_eddsa_sign_data" />
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".test_vector_hmac_data" inputsections="*(SORT(.test_vector_hmac_data*))" address_symbol="__start_test_vector_hmac_data" end_symbol="__stop_test_vector_hmac_data" />
@@ -34,7 +34,7 @@
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".log_filter_data"  inputsections="*(SORT(.log_filter_data*))" runin=".log_filter_data_run"/>
     <ProgramSection alignment="4" load="Yes" name=".dtors" />
     <ProgramSection alignment="4" load="Yes" name=".ctors" />
-    <ProgramSection alignment="4" load="Yes" name=".rodata" />
+    <ProgramSection alignment="4" load="Yes" name=".rodata" size="0x4" />
     <ProgramSection alignment="4" load="Yes" name=".ARM.exidx" address_symbol="__exidx_start" end_symbol="__exidx_end" />
     <ProgramSection alignment="4" load="Yes" runin=".fast_run" name=".fast" />
     <ProgramSection alignment="4" load="Yes" runin=".data_run" name=".data" />

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -43,8 +43,6 @@
  * @{
  * @ingroup usbd_msc
  * @brief usbd msc application main file
- *
- * This file contains the source code for a sample application to blink LEDs.
  *
  * Note: Limitation when setting "APP_USBD_CONFIG_EVENT_QUEUE_ENABLE = 0":
  *       when USB cable is unplugged and re-plugged, the application goes into an endless

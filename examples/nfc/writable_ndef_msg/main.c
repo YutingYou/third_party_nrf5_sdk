@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -173,7 +173,7 @@ int main(void)
         uint32_t size = sizeof(m_ndef_msg_buf);
         err_code = ndef_file_default_message(m_ndef_msg_buf, &size);
         APP_ERROR_CHECK(err_code);
-        err_code = ndef_file_update(m_ndef_msg_buf, NDEF_FILE_SIZE);
+        err_code = ndef_file_update(m_ndef_msg_buf, size);
         APP_ERROR_CHECK(err_code);
         NRF_LOG_DEBUG("Default NDEF message restored!");
     }

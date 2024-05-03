@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -250,6 +250,8 @@ static bool local_db_update_in_evt(uint16_t conn_handle)
             success = true;
             break;
 
+        case NRF_ERROR_INVALID_DATA:
+            /* Fallthrough */
         case BLE_ERROR_INVALID_CONN_HANDLE:
             /* Do nothing */
             break;

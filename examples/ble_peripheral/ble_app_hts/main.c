@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2014 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -197,6 +197,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
     bool       is_indication_enabled;
 
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)

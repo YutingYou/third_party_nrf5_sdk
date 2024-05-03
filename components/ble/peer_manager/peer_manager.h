@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -169,6 +169,23 @@ ret_code_t pm_sec_params_set(ble_gap_sec_params_t * p_sec_params);
  * @retval NRF_ERROR_INTERNAL             If an internal error occurred.
  */
 ret_code_t pm_conn_secure(uint16_t conn_handle, bool force_repairing);
+
+
+/**@brief Function for excluding a connection from the BLE event flow that is handled inside
+ *        the Peer Manager.
+ *
+ * @details This function is optional, and must be called in reply to a @ref PM_EVT_CONN_CONFIG_REQ
+ *          event, before the Peer Manager event handler returns. If it is not called in time,
+ *          BLE events for a connection handle passed in the @ref PM_EVT_CONN_CONFIG_REQ event will
+ *          be normally handled by the Peer Manager.
+ *
+ * @param[in]  conn_handle   The connection to be excluded.
+ * @param[in]  p_context     The context found in the request event that this function replies to.
+ *
+ * @retval NRF_SUCCESS              Successful reply.
+ * @retval NRF_ERROR_NULL           p_context was null.
+ */
+ret_code_t pm_conn_exclude(uint16_t conn_handle, void const * p_context);
 
 
 /**@brief Function for providing security configuration for a link.
@@ -453,8 +470,8 @@ bool pm_address_resolve(ble_gap_addr_t const * p_addr, ble_gap_irk_t const * p_i
 /**@brief Function for getting the connection handle of the connection with a bonded peer.
  *
  * @param[in]  peer_id        The peer ID of the bonded peer.
- * @param[out] p_conn_handle  Connection handle, or @ref BLE_CONN_HANDLE_INVALID if the peer
- *                            is not connected.
+ * @param[out] p_conn_handle  Connection handle, or @ref BLE_CONN_HANDLE_INVALID if none could be
+ *                            resolved. The conn_handle can refer to a recently disconnected connection.
  *
  * @retval NRF_SUCCESS              If the connection handle was retrieved successfully.
  * @retval NRF_ERROR_NULL           If @p p_conn_handle was NULL.

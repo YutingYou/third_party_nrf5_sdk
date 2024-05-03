@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2018 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -192,7 +192,7 @@ static void idle_state_handler(void)
     err_code = nrf_ble_lesc_request_handler();
     APP_ERROR_CHECK(err_code);
     
-#if defined(ADAFRUIT_SHIELD) && (ADAFRUIT_SHIELD == 1)
+#if NRF_MODULE_ENABLED(ADAFRUIT_SHIELD)
     nfc_tag_process();
 #endif // ADAFRUIT_SHIELD
 

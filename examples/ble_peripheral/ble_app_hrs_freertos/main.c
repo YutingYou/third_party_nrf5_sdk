@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2014 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -195,6 +195,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
     bool delete_bonds = false;
 
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)
@@ -905,16 +906,27 @@ static void logger_thread(void * arg)
 }
 #endif //NRF_LOG_ENABLED
 
-/**@brief A function which is hooked to idle task.
- * @note Idle hook must be enabled in FreeRTOS configuration (configUSE_IDLE_HOOK).
- */
-void vApplicationIdleHook( void )
-{
-#if NRF_LOG_ENABLED
-     vTaskResume(m_logger_thread);
-#endif
-}
+#if NRF_LOG_ENABLED && NRF_LOG_DEFERRED
+ void log_pending_hook( void )
+ {
+     BaseType_t result = pdFAIL;
 
+    if ( __get_IPSR() != 0 )
+    {
+        BaseType_t higherPriorityTaskWoken = pdFALSE;
+        result = xTaskNotifyFromISR( m_logger_thread, 0, eSetValueWithoutOverwrite, &higherPriorityTaskWoken );
+
+        if ( pdFAIL != result )
+        {
+        portYIELD_FROM_ISR( higherPriorityTaskWoken );
+        }
+    }
+    else
+    {
+        UNUSED_RETURN_VALUE(xTaskNotify( m_logger_thread, 0, eSetValueWithoutOverwrite ));
+    }
+ }
+#endif
 
 /**@brief Function for initializing the clock.
  */

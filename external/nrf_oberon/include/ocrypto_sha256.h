@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -58,14 +58,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * Length of SHA-256 hash.
  */
 #define ocrypto_sha256_BYTES (32)
+
 
 /**@cond */
 typedef struct {
@@ -152,3 +155,4 @@ void ocrypto_sha256(
 #endif /* #ifndef OCRYPTO_SHA256_H */
 
 /** @} */
+

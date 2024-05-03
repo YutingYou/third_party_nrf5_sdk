@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -49,11 +49,11 @@
 // <h> Application 
 
 //==========================================================
-// <q> ADAFRUIT_SHIELD_ENABLE  - Adafruit shield enabled.
+// <q> ADAFRUIT_SHIELD_ENABLED  - Adafruit shield enabled.
  
 
-#ifndef ADAFRUIT_SHIELD_ENABLE
-#define ADAFRUIT_SHIELD_ENABLE 0
+#ifndef ADAFRUIT_SHIELD_ENABLED
+#define ADAFRUIT_SHIELD_ENABLED 0
 #endif
 
 // <o> ADV_INTERVAL - Advertising interval (in units of 0.625 ms) 
@@ -490,11 +490,11 @@
 #define CLI_MAX_CMD_LEN 21
 #endif
 
-// <q> CLI_RTT_ENABLE  - Enable CLI RTT backend.
+// <q> CLI_RTT_ENABLED  - Enable CLI RTT backend.
  
 
-#ifndef CLI_RTT_ENABLE
-#define CLI_RTT_ENABLE 0
+#ifndef CLI_RTT_ENABLED
+#define CLI_RTT_ENABLED 0
 #endif
 
 // <o> CONNECTION_SLAVE_LATENCY - Slave latency in terms of connection events. 
@@ -855,19 +855,19 @@
 
 // </e>
 
-// <q> NRF_BLE_GATT_ENABLED  - nrf_ble_gatt - GATT module
- 
-
+// <e> NRF_BLE_GATT_ENABLED - nrf_ble_gatt - GATT module
+//==========================================================
 #ifndef NRF_BLE_GATT_ENABLED
 #define NRF_BLE_GATT_ENABLED 1
 #endif
-
-// <q> NRF_BLE_LESC_ENABLED  - nrf_ble_lesc - Le Secure Connection
+// <q> NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED  - Enable GATT MTU exchange initiation
  
 
-#ifndef NRF_BLE_LESC_ENABLED
-#define NRF_BLE_LESC_ENABLED 1
+#ifndef NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED
+#define NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED 1
 #endif
+
+// </e>
 
 // <e> NRF_BLE_SCAN_ENABLED - nrf_ble_scan - Scanning Module
 //==========================================================
@@ -1061,6 +1061,26 @@
 #endif
 
 // </e>
+
+// <h> nrf_ble_lesc - Le Secure Connection
+
+//==========================================================
+// <q> NRF_BLE_LESC_ENABLED  - Enable LESC Module
+ 
+
+#ifndef NRF_BLE_LESC_ENABLED
+#define NRF_BLE_LESC_ENABLED 1
+#endif
+
+// <q> NRF_BLE_LESC_GENERATE_NEW_KEYS  - Generate new LESC keys after every pairing attempt. Keys are generated on the auth status event
+ 
+
+#ifndef NRF_BLE_LESC_GENERATE_NEW_KEYS
+#define NRF_BLE_LESC_GENERATE_NEW_KEYS 0
+#endif
+
+// </h> 
+//==========================================================
 
 // </h> 
 //==========================================================

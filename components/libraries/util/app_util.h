@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2012 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -112,9 +112,9 @@ extern char RO_END$$Base;
 
 #elif defined(__SES_ARM)
 extern uint32_t * _vectors;
-extern uint32_t __FLASH_segment_used_end__;
+extern uint32_t __FLASH1_segment_used_end__;
 #define CODE_START ((uint32_t)&_vectors)
-#define CODE_END   ((uint32_t)&__FLASH_segment_used_end__)
+#define CODE_END   ((uint32_t)&__FLASH1_segment_used_end__)
 #define CODE_SIZE  (CODE_END - CODE_START)
 
 #elif defined ( __GNUC__ )

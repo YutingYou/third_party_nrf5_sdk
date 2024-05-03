@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2019 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -55,9 +55,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * The Public RSA Exponent.
@@ -278,3 +280,4 @@ int ocrypto_rsa2048_init_crt_key(
 #endif /* #ifndef OCRYPTO_RSA_KEY_H */
 
 /** @} */
+

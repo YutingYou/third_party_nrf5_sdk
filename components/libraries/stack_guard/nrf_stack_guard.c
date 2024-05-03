@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -41,7 +41,6 @@
 #include <stdint.h>
 #include "nrf.h"
 #include "nrf_assert.h"
-#include "nrf_strerror.h"
 #include "nrf_mpu_lib.h"
 #include "nrf_stack_guard.h"
 
@@ -85,7 +84,7 @@ ret_code_t nrf_stack_guard_init(void)
     }
     else
     {
-        NRF_LOG_ERROR("Cannot create stack guard page! Error: %u [%s]", status, (uint32_t)nrf_strerror_get(status));
+        NRF_LOG_ERROR("Cannot create stack guard page! Error: %u [%s]", status, (uint32_t)NRF_LOG_ERROR_STRING_GET(status));
     }
 
     return status;

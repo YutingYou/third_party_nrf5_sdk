@@ -81,12 +81,6 @@ SECTIONS
     KEEP(*(SORT(.test_vector_aead_simple_data*)))
     PROVIDE(__stop_test_vector_aead_simple_data = .);
   } > FLASH
-  .test_vector_ecdh_data_deterministic_simple :
-  {
-    PROVIDE(__start_test_vector_ecdh_data_deterministic_simple = .);
-    KEEP(*(SORT(.test_vector_ecdh_data_deterministic_simple*)))
-    PROVIDE(__stop_test_vector_ecdh_data_deterministic_simple = .);
-  } > FLASH
   .test_vector_ecdh_data_deterministic_full :
   {
     PROVIDE(__start_test_vector_ecdh_data_deterministic_full = .);
@@ -99,11 +93,11 @@ SECTIONS
     KEEP(*(SORT(.test_vector_ecdh_data_random*)))
     PROVIDE(__stop_test_vector_ecdh_data_random = .);
   } > FLASH
-  .test_vector_ecdsa_sign_data :
+  .test_vector_ecdh_data_deterministic_simple :
   {
-    PROVIDE(__start_test_vector_ecdsa_sign_data = .);
-    KEEP(*(SORT(.test_vector_ecdsa_sign_data*)))
-    PROVIDE(__stop_test_vector_ecdsa_sign_data = .);
+    PROVIDE(__start_test_vector_ecdh_data_deterministic_simple = .);
+    KEEP(*(SORT(.test_vector_ecdh_data_deterministic_simple*)))
+    PROVIDE(__stop_test_vector_ecdh_data_deterministic_simple = .);
   } > FLASH
   .test_vector_ecdsa_random_data :
   {
@@ -116,6 +110,12 @@ SECTIONS
     PROVIDE(__start_test_vector_ecdsa_verify_data = .);
     KEEP(*(SORT(.test_vector_ecdsa_verify_data*)))
     PROVIDE(__stop_test_vector_ecdsa_verify_data = .);
+  } > FLASH
+  .test_vector_ecdsa_sign_data :
+  {
+    PROVIDE(__start_test_vector_ecdsa_sign_data = .);
+    KEEP(*(SORT(.test_vector_ecdsa_sign_data*)))
+    PROVIDE(__stop_test_vector_ecdsa_sign_data = .);
   } > FLASH
   .test_vector_eddsa_verify_data :
   {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009-2020, Nordic Semiconductor ASA
+ * Copyright (c) 2009-2020 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -183,6 +183,9 @@ static void radio_config(nrf_radio_mode_t mode, transmit_pattern_t pattern)
              */
             packet_conf.plen = NRF_RADIO_PREAMBLE_LENGTH_32BIT_ZERO;
             packet_conf.maxlen = IEEE_MAX_PAYLOAD_LEN;
+            packet_conf.balen = 0;
+            packet_conf.big_endian = false;
+            packet_conf.whiteen = false;
 
             /* Set fast ramp-up time. */
             nrf_radio_modecnf0_set(true, RADIO_MODECNF0_DTX_Center);
@@ -693,6 +696,10 @@ void radio_test_init(radio_test_config_t * p_config)
 
         timer_init(p_config);
 
+#if defined(NRF21540_DRIVER_ENABLE) && (NRF21540_DRIVER_ENABLE == 1)
+        // nRF21540 driver interrupts need to have higher interrupts priorities than interrupt which services nRF21540.
+        NVIC_SetPriority(RADIO_IRQn, NRFX_TIMER_DEFAULT_CONFIG_IRQ_PRIORITY + 1);
+#endif
         NVIC_EnableIRQ(RADIO_IRQn);
         __enable_irq();
 

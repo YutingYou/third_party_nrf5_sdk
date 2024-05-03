@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2012 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -159,7 +159,7 @@ int main(void)
 
     for (;;)
     {
-        // Will return every timeout, 625 us.
+        // Will return every UART pool timeout,
         current_time = dtm_wait();
 
         if (app_uart_get(&rx_byte) != NRF_SUCCESS)

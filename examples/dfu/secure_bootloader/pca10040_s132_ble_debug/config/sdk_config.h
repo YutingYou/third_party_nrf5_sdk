@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -137,7 +137,7 @@
 // <31=> 31 (P0.31) 
 
 #ifndef NRF_BL_DFU_ENTER_METHOD_BUTTON_PIN
-#define NRF_BL_DFU_ENTER_METHOD_BUTTON_PIN 17
+#define NRF_BL_DFU_ENTER_METHOD_BUTTON_PIN 16
 #endif
 
 // </e>
@@ -1175,8 +1175,7 @@
  
 
 #ifndef NRF_DFU_BLE_REQUIRES_BONDS
-#define NRF_DFU_BLE_REQUIRES_BONDS 0
-
+#define NRF_DFU_BLE_REQUIRES_BONDS 0
 #endif
 
 // </h> 
@@ -4818,8 +4817,7 @@
  
 
 #ifndef NRF_SDH_BLE_SERVICE_CHANGED
-#define NRF_SDH_BLE_SERVICE_CHANGED 0
-
+#define NRF_SDH_BLE_SERVICE_CHANGED 0
 #endif
 
 // </h> 
@@ -5274,12 +5272,12 @@
 // <2=> NRF_CLOCK_LF_SRC_SYNTH 
 
 #ifndef NRF_SDH_CLOCK_LF_SRC
-#define NRF_SDH_CLOCK_LF_SRC 0
+#define NRF_SDH_CLOCK_LF_SRC 1
 #endif
 
 // <o> NRF_SDH_CLOCK_LF_RC_CTIV - SoftDevice calibration timer interval. 
 #ifndef NRF_SDH_CLOCK_LF_RC_CTIV
-#define NRF_SDH_CLOCK_LF_RC_CTIV 16
+#define NRF_SDH_CLOCK_LF_RC_CTIV 0
 #endif
 
 // <o> NRF_SDH_CLOCK_LF_RC_TEMP_CTIV - SoftDevice calibration timer interval under constant temperature. 
@@ -5287,7 +5285,7 @@
 // <i>  if the temperature has not changed.
 
 #ifndef NRF_SDH_CLOCK_LF_RC_TEMP_CTIV
-#define NRF_SDH_CLOCK_LF_RC_TEMP_CTIV 2
+#define NRF_SDH_CLOCK_LF_RC_TEMP_CTIV 0
 #endif
 
 // <o> NRF_SDH_CLOCK_LF_ACCURACY  - External clock accuracy used in the LL to compute timing.
@@ -5306,7 +5304,7 @@
 // <11=> NRF_CLOCK_LF_ACCURACY_1_PPM 
 
 #ifndef NRF_SDH_CLOCK_LF_ACCURACY
-#define NRF_SDH_CLOCK_LF_ACCURACY 1
+#define NRF_SDH_CLOCK_LF_ACCURACY 7
 #endif
 
 // </h> 

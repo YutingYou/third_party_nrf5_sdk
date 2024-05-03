@@ -69,6 +69,7 @@
 #endif // ANTFS_CONFIG_DEBUG_LED_ENABLED
 
 #define BURST_PACKET_SIZE                  8u                            /**< The burst packet size. */
+#define SEQUENCE_NUMBER_NO_FLAG_MASK       SEQUENCE_NUMBER_ROLLOVER      /**< Bitfields for sequence number excluding the 'LAST MESSAGE' flag (b7). */
 
 #define ANTFS_CONNECTION_TYPE_OFFSET       0x00u                         /**< The connection type offset within ANT-FS message. */
 #define ANTFS_COMMAND_OFFSET               0x01u                         /**< The command offset within ANT-FS message. */
@@ -1405,7 +1406,8 @@ static void authenticate_layer_cmd_decode(uint8_t control_byte,
     static uint32_t response;
 #endif // ANTFS_CONFIG_AUTH_TYPE_PASSKEY_ENABLED
 
-    if ((control_byte & ~SEQUENCE_LAST_MESSAGE) == 0 && m_link_command_in_progress != ANTFS_CMD_NONE)
+    if (((control_byte & SEQUENCE_NUMBER_NO_FLAG_MASK) == 0) &&
+        (m_link_command_in_progress != ANTFS_CMD_NONE))
     {
         // This is something new, and we're busy processing something already, so don't respond
         return;
@@ -1459,7 +1461,7 @@ static void authenticate_layer_cmd_decode(uint8_t control_byte,
 #endif // ANTFS_CONFIG_AUTH_TYPE_PASSTHROUGH_ENABLED
 #if ANTFS_CONFIG_AUTH_TYPE_PAIRING_ENABLED
             case COMMAND_TYPE_REQUEST_PAIR:
-                if ((control_byte & SEQUENCE_NUMBER_ROLLOVER) == 0)
+                if ((control_byte & SEQUENCE_NUMBER_NO_FLAG_MASK) == 0)
                 {
                     // First burst packet.
 
@@ -1514,7 +1516,7 @@ static void authenticate_layer_cmd_decode(uint8_t control_byte,
 #endif // ANTFS_CONFIG_AUTH_TYPE_PAIRING_ENABLED
 #if ANTFS_CONFIG_AUTH_TYPE_PASSKEY_ENABLED
             case COMMAND_TYPE_REQUEST_PASSKEY:
-                if ((control_byte & SEQUENCE_NUMBER_ROLLOVER) == 0)
+                if ((control_byte & SEQUENCE_NUMBER_NO_FLAG_MASK) == 0)
                 {
                     // First burst packet.
 
@@ -1745,7 +1747,7 @@ static void transport_layer_cmd_decode(uint8_t control_byte, const uint8_t * p_c
 
         case ANTFS_CMD_UPLOAD_REQUEST_ID:
 #if ANTFS_CONFIG_UPLOAD_ENABLED
-            if ((control_byte & ~SEQUENCE_LAST_MESSAGE) == 0x00)
+            if ((control_byte & SEQUENCE_NUMBER_NO_FLAG_MASK) == 0x00)
             {
                 // First burst packet.
 
@@ -1808,7 +1810,7 @@ static void transport_layer_cmd_decode(uint8_t control_byte, const uint8_t * p_c
 
         case ANTFS_CMD_UPLOAD_DATA_ID:
 #if ANTFS_CONFIG_UPLOAD_ENABLED
-            if ((control_byte & ~SEQUENCE_LAST_MESSAGE) == 0x00)
+            if ((control_byte & SEQUENCE_NUMBER_NO_FLAG_MASK) == 0x00)
             {
                 // First burst packet.
 

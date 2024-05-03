@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2015 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -217,6 +217,7 @@ typedef struct
 typedef enum
 {
     PM_EVT_BONDED_PEER_CONNECTED,           /**< @brief A connected peer has been identified as one with which we have a bond. When performing bonding with a peer for the first time, this event will not be sent until a new connection is established with the peer. When we are central, this event is always sent when the Peer Manager receives the @ref BLE_GAP_EVT_CONNECTED event. When we are peripheral, this event might in rare cases arrive later. */
+    PM_EVT_CONN_CONFIG_REQ,                 /**< @brief A new connection has been established. This event is a wrapper for @ref BLE_GAP_EVT_CONNECTED event and contains its parameters. Reply with @ref pm_conn_exclude before the event handler returns to exclude BLE events targeting this connection from being handled by the Peer Manager */
     PM_EVT_CONN_SEC_START,                  /**< @brief A security procedure has started on a link, initiated either locally or remotely. The security procedure is using the last parameters provided via @ref pm_sec_params_set. This event is always followed by either a @ref PM_EVT_CONN_SEC_SUCCEEDED or a @ref PM_EVT_CONN_SEC_FAILED event. This is an informational event; no action is needed for the procedure to proceed. */
     PM_EVT_CONN_SEC_SUCCEEDED,              /**< @brief A link has been encrypted, either as a result of a call to @ref pm_conn_secure or a result of an action by the peer. The event structure contains more information about the circumstances. This event might contain a peer ID with the value @ref PM_PEER_ID_INVALID, which means that the peer (central) used an address that could not be identified, but it used an encryption key (LTK) that is present in the database. */
     PM_EVT_CONN_SEC_FAILED,                 /**< @brief A pairing or encryption procedure has failed. In some cases, this means that security is not possible on this link (temporarily or permanently). How to handle this error depends on the application. */
@@ -238,6 +239,15 @@ typedef enum
     PM_EVT_FLASH_GARBAGE_COLLECTED,         /**< @brief The flash has been garbage collected (By FDS), possibly freeing up space. */
     PM_EVT_FLASH_GARBAGE_COLLECTION_FAILED, /**< @brief Garbage collection was attempted but failed. */
 } pm_evt_id_t;
+
+
+/**@brief Parameters specific to the @ref PM_EVT_CONN_CONFIG_REQ event.
+ */
+typedef struct
+{
+    ble_gap_evt_connected_t const * p_peer_params; /**< @brief Connected Event parameters. */
+    void                    const * p_context;     /**< @brief This pointer must be provided in the reply if the reply function takes a p_context argument. */
+} pm_conn_config_req_evt_t;
 
 
 /**@brief Events parameters specific to the @ref PM_EVT_CONN_SEC_START event.
@@ -326,6 +336,7 @@ typedef struct
     pm_peer_id_t peer_id;     /**< @brief The bonded peer that this event pertains to, or @ref PM_PEER_ID_INVALID. */
     union
     {
+        pm_conn_config_req_evt_t            conn_config_req;            /**< @brief Parameters specific to the @ref PM_EVT_CONN_CONFIG_REQ event. */
         pm_conn_sec_start_evt_t             conn_sec_start;             /**< @brief Parameters specific to the @ref PM_EVT_CONN_SEC_START event. */
         pm_conn_secured_evt_t               conn_sec_succeeded;         /**< @brief Parameters specific to the @ref PM_EVT_CONN_SEC_SUCCEEDED event. */
         pm_conn_secure_failed_evt_t         conn_sec_failed;            /**< @brief Parameters specific to the @ref PM_EVT_CONN_SEC_FAILED event. */
