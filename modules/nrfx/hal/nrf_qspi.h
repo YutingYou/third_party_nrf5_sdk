@@ -612,6 +612,7 @@ __STATIC_INLINE void nrf_qspi_ifconfig0_set(NRF_QSPI_Type *              p_reg,
     config |= ((uint32_t)p_config->writeoc)    << QSPI_IFCONFIG0_WRITEOC_Pos;
     config |= ((uint32_t)p_config->addrmode)   << QSPI_IFCONFIG0_ADDRMODE_Pos;
     config |= (p_config->dpmconfig ? 1U : 0U ) << QSPI_IFCONFIG0_DPMENABLE_Pos;
+    config |= 1 << QSPI_IFCONFIG0_PPSIZE_Pos;   // Page size set to 512Bytes
 
     p_reg->IFCONFIG0 = config;
 }
