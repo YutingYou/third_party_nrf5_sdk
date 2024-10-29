@@ -69,6 +69,28 @@
                                          NRF_GPIO_PIN_H0H1,             \
                                          NRF_GPIO_PIN_NOSENSE)
 
+#define QSPI_PIN_INIT_PULLUP(_pin) nrf_gpio_cfg((_pin),                 \
+                                         NRF_GPIO_PIN_DIR_INPUT,        \
+                                         NRF_GPIO_PIN_INPUT_DISCONNECT, \
+                                         NRF_GPIO_PIN_PULLUP,           \
+                                         NRF_GPIO_PIN_H0H1,             \
+                                         NRF_GPIO_PIN_NOSENSE)
+
+
+#define QSPI_PIN_INIT_PULLDOWN(_pin) nrf_gpio_cfg((_pin),               \
+                                         NRF_GPIO_PIN_DIR_INPUT,        \
+                                         NRF_GPIO_PIN_INPUT_DISCONNECT, \
+                                         NRF_GPIO_PIN_PULLDOWN,         \
+                                         NRF_GPIO_PIN_H0H1,             \
+                                         NRF_GPIO_PIN_NOSENSE)
+
+#define QSPI_PIN_INIT_NOPULL(_pin) nrf_gpio_cfg((_pin),                 \
+                                         NRF_GPIO_PIN_DIR_INPUT,        \
+                                         NRF_GPIO_PIN_INPUT_DISCONNECT, \
+                                         NRF_GPIO_PIN_NOPULL,           \
+                                         NRF_GPIO_PIN_H0H1,             \
+                                         NRF_GPIO_PIN_NOSENSE)
+
 /** @brief Control block - driver instance local data. */
 typedef struct
 {
@@ -117,17 +139,18 @@ static bool qspi_pins_configure(nrf_qspi_pins_t const * p_config)
         return false;
     }
 
-    QSPI_PIN_INIT(p_config->sck_pin);
-    QSPI_PIN_INIT(p_config->csn_pin);
-    QSPI_PIN_INIT(p_config->io0_pin);
-    QSPI_PIN_INIT(p_config->io1_pin);
+    // NOTE: this is only for AMOLED
+    QSPI_PIN_INIT_NOPULL(p_config->csn_pin);
+    QSPI_PIN_INIT_NOPULL(p_config->sck_pin);
+    QSPI_PIN_INIT_PULLDOWN(p_config->io0_pin);
+    QSPI_PIN_INIT_PULLDOWN(p_config->io1_pin);
     if (p_config->io2_pin != NRF_QSPI_PIN_NOT_CONNECTED)
     {
-        QSPI_PIN_INIT(p_config->io2_pin);
+        QSPI_PIN_INIT_PULLDOWN(p_config->io2_pin);
     }
     if (p_config->io3_pin != NRF_QSPI_PIN_NOT_CONNECTED)
     {
-        QSPI_PIN_INIT(p_config->io3_pin);
+        QSPI_PIN_INIT_PULLDOWN(p_config->io3_pin);
     }
 
     nrf_qspi_pins_set(NRF_QSPI, p_config);
