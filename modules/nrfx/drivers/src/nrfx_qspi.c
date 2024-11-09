@@ -141,7 +141,7 @@ static bool qspi_pins_configure(nrf_qspi_pins_t const * p_config)
 
     // NOTE: this is only for AMOLED
     QSPI_PIN_INIT_NOPULL(p_config->csn_pin);
-    QSPI_PIN_INIT_NOPULL(p_config->sck_pin);
+    QSPI_PIN_INIT_PULLDOWN(p_config->sck_pin);
     QSPI_PIN_INIT_PULLDOWN(p_config->io0_pin);
     QSPI_PIN_INIT_PULLDOWN(p_config->io1_pin);
     if (p_config->io2_pin != NRF_QSPI_PIN_NOT_CONNECTED)
